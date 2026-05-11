@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0a0f">
+    <meta name="description" content="以易经六十四卦理解世界规律，以佛教十二因缘洞察人性驱动">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>易因 · 世界分析引擎</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Command Palette -->
+    <div class="cmd-overlay" id="cmdOverlay" onclick="closeCmdPalette()">
+        <div class="cmd-panel" onclick="event.stopPropagation()">
+            <div class="cmd-input-wrapper">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-tertiary)">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.3-4.3"></path>
+                </svg>
+                <input type="text" class="cmd-input" id="cmdInput" placeholder="搜索命令..." oninput="filterCommands()">
+                <span class="cmd-kbd">ESC</span>
+            </div>
+            <div id="cmdResults"></div>
+        </div>
+    </div>
+
+    <!-- Compare Modal -->
+    <div class="modal-overlay" id="compareModal" onclick="closeCompareModal()">
+        <div class="modal-panel" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-title">对比分析</div>
+                <button class="modal-close" onclick="closeCompareModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="compareModalBody"></div>
+        </div>
+    </div>
+
+    <!-- Export Image Modal -->
+    <div class="export-overlay" id="exportOverlay" onclick="closeExportImage()">
+        <div class="export-panel" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-title">导出为图片</div>
+                <button class="modal-close" onclick="closeExportImage()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="export-preview" id="exportPreview"></div>
+            <div class="export-footer">
+                <button class="header-btn" onclick="closeExportImage()">取消</button>
+                <button class="header-btn primary" onclick="downloadImage()">下载 PNG</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="app">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-icon">易</div>
+                    <div>
+                        <div class="brand-text">易因</div>
+                        <div class="brand-sub">世界分析引擎</div>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">分析</div>
+                    <div class="nav-item active" onclick="switchView('analyze')" data-nav="analyze">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.3-4.3"></path>
+                        </svg>
+                        新建分析
+                    </div>
+                    <div class="nav-item" onclick="switchView('history')" data-nav="history">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                            <path d="M3 3v5h5"></path>
+                        </svg>
+                        历史记录
+                        <span class="nav-badge" id="historyCount">0</span>
+                    </div>
+                    <div class="nav-item" onclick="switchView('favorites')" data-nav="favorites">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                        收藏
+                        <span class="nav-badge" id="favoritesCount">0</span>
+                    </div>
+                    <div class="nav-item" onclick="switchView('compare')" data-nav="compare">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="3" width="20" height="6" rx="2"></rect>
+                            <rect x="2" y="15" width="20" height="6" rx="2"></rect>
+                        </svg>
+                        对比模式
+                        <span class="nav-badge" id="compareCount" style="display:none">0</span>
+                    </div>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">知识</div>
+                    <div class="nav-item" onclick="switchView('gua')" data-nav="gua">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+                        </svg>
+                        六十四卦
+                    </div>
+                    <div class="nav-item" onclick="switchView('pratitya')" data-nav="pratitya">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="2" y1="12" x2="22" y2="12"></line>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                        十二因缘
+                    </div>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">最近</div>
+                    <div id="recentHistory" class="history-list"></div>
+                </div>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar">易</div>
+                    <span class="user-name">本地用户</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-left">
+                    <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </button>
+                    <span class="page-title" id="pageTitle">新建分析</span>
+                </div>
+                <div class="header-right">
+                    <div class="cmd-trigger" onclick="openCmdPalette()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.3-4.3"></path>
+                        </svg>
+                        搜索...
+                        <span class="cmd-kbd">⌘K</span>
+                    </div>
+                    <button class="header-btn" onclick="exportResult('markdown')" title="导出 Markdown">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                    </button>
+                    <button class="header-btn" onclick="openExportImage()" title="导出图片">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                    </button>
+                    <button class="header-btn" onclick="exportResult('json')" title="导出 JSON">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="7 10 12 15 17 10"></polyline>
+                            <line x1="12" y1="15" x2="12" y2="3"></line>
+                        </svg>
+                    </button>
+                    <button class="header-btn" onclick="shareResult()" title="分享">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="18" cy="5" r="3"></circle>
+                            <circle cx="6" cy="12" r="3"></circle>
+                            <circle cx="18" cy="19" r="3"></circle>
+                            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Content -->
+            <div class="content" id="mainContent">
+                <!-- Analyze View -->
+                <div id="analyzeView">
+                    <div class="hero">
+                        <div class="hero-badge">AI 驱动 · 实时分析</div>
+                        <h1 class="hero-title">洞察<span>规律</span>· 理解<span>人性</span></h1>
+                        <p class="hero-subtitle">以易经六十四卦理解世界运行的规律，以佛教十二因缘洞察人性驱动的本源</p>
+                    </div>
+
+                    <div class="input-card">
+                        <div class="input-header">
+                            <div class="input-label">
+                                <svg class="input-label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                                描述你想分析的现象
+                            </div>
+                            <div class="input-actions">
+                                <button class="input-action-btn" onclick="clearInput()">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 6h18"></path>
+                                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                    </svg>
+                                    清空
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="textarea-wrapper">
+                            <textarea class="main-textarea" id="scenario" placeholder="描述你想分析的现象、事件或决策场景...
+
+例如：
+• 一个产品突然爆红但三个月后用户流失殆尽
+• 一段关系从热烈到破裂的过程
+• 一个社会运动的兴起与消退
+• 个人职业选择的纠结与迷茫
+• 公司团队内部的权力斗争
+
+越具体越好，包含时间线、关键转折、涉及的人物/群体。" oninput="onScenarioInput()"></textarea>
+                        </div>
+                        
+                        <div class="textarea-footer">
+                            <span class="textarea-hint">支持自然语言描述，系统会自动识别关键词</span>
+                            <span class="textarea-count" id="charCount">0 字</span>
+                        </div>
+
+                        <!-- Live Preview -->
+                        <div class="live-preview" id="livePreview">
+                            <div class="live-preview-header">实时匹配</div>
+                            <div class="live-tags" id="liveTags"></div>
+                            <div class="live-gua-hint" id="liveGuaHint"></div>
+                        </div>
+
+                        <!-- Time Divination -->
+                        <div class="time-divination" id="timeDivination">
+                            <div class="time-divination-header">
+                                <div class="time-divination-title">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"></circle>
+                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                    </svg>
+                                    时间起卦
+                                </div>
+                                <button class="input-action-btn" onclick="refreshTimeGua()">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="23 4 23 10 17 10"></polyline>
+                                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                                    </svg>
+                                    刷新
+                                </button>
+                            </div>
+                            <div class="time-divination-body" id="timeDivinationBody"></div>
+                        </div>
+
+                        <div class="options-section">
+                            <div class="options-title">分析维度</div>
+                            <div class="options-grid" id="dimOptions">
+                                <button class="option-chip selected" data-dim="all" onclick="selectDim(this)">
+                                    <span class="chip-title">全面分析</span>
+                                    <span class="chip-desc">卦象 + 因缘 + 交叉</span>
+                                </button>
+                                <button class="option-chip" data-dim="yijing" onclick="selectDim(this)">
+                                    <span class="chip-title">易经视角</span>
+                                    <span class="chip-desc">系统状态与演化</span>
+                                </button>
+                                <button class="option-chip" data-dim="buddhism" onclick="selectDim(this)">
+                                    <span class="chip-title">十二因缘</span>
+                                    <span class="chip-desc">人性驱动与卡点</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="options-section">
+                            <div class="options-title">现象类型</div>
+                            <div class="options-grid" id="typeOptions">
+                                <button class="option-chip" data-type="personal" onclick="selectType(this)">
+                                    <span class="chip-title">个人决策</span>
+                                    <span class="chip-desc">职业、选择、成长</span>
+                                </button>
+                                <button class="option-chip" data-type="relationship" onclick="selectType(this)">
+                                    <span class="chip-title">人际关系</span>
+                                    <span class="chip-desc">感情、家庭、社交</span>
+                                </button>
+                                <button class="option-chip" data-type="business" onclick="selectType(this)">
+                                    <span class="chip-title">商业产品</span>
+                                    <span class="chip-desc">创业、产品、市场</span>
+                                </button>
+                                <button class="option-chip" data-type="social" onclick="selectType(this)">
+                                    <span class="chip-title">社会群体</span>
+                                    <span class="chip-desc">运动、趋势、文化</span>
+                                </button>
+                                <button class="option-chip" data-type="creative" onclick="selectType(this)">
+                                    <span class="chip-title">创作艺术</span>
+                                    <span class="chip-desc">作品、灵感、表达</span>
+                                </button>
+                                <button class="option-chip" data-type="political" onclick="selectType(this)">
+                                    <span class="chip-title">政治权力</span>
+                                    <span class="chip-desc">组织、博弈、变革</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Tags -->
+                        <div class="options-section">
+                            <div class="options-title">标签</div>
+                            <div class="tag-input-wrapper" id="tagWrapper">
+                                <input type="text" class="tag-input" id="tagInput" placeholder="添加标签..." onkeydown="onTagInput(event)">
+                            </div>
+                        </div>
+
+                        <div class="analyze-section">
+                            <button class="btn-analyze" id="analyzeBtn" onclick="analyze()">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                                </svg>
+                                开始分析
+                            </button>
+                            <button class="btn-secondary" onclick="randomExample()" title="随机示例">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M16 3h3v3h-3z"></path>
+                                    <path d="M8 3h3v3H8z"></path>
+                                    <path d="M5 8h14v12H5z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="results" id="results"></div>
+                </div>
+
+                <!-- History View -->
+                <div id="historyView" style="display:none">
+                    <div class="history-view-header">
+                        <h2 class="history-view-title">历史记录</h2>
+                        <div class="history-view-actions">
+                            <button class="header-btn" onclick="clearAllHistory()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                </svg>
+                                清空
+                            </button>
+                        </div>
+                    </div>
+                    <div class="search-box">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-tertiary)">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.3-4.3"></path>
+                        </svg>
+                        <input type="text" id="historySearch" placeholder="搜索历史记录..." oninput="renderHistoryView()">
+                    </div>
+                    <div class="history-grid" id="historyGrid"></div>
+                </div>
+
+                <!-- Favorites View -->
+                <div id="favoritesView" style="display:none">
+                    <div class="history-view-header">
+                        <h2 class="history-view-title">收藏</h2>
+                    </div>
+                    <div class="favorites-grid" id="favoritesGrid"></div>
+                </div>
+
+                <!-- Compare View -->
+                <div id="compareView" style="display:none">
+                    <div class="history-view-header">
+                        <h2 class="history-view-title">对比分析</h2>
+                        <div class="history-view-actions">
+                            <button class="header-btn" onclick="clearCompare()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M3 6h18"></path>
+                                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                </svg>
+                                清空对比
+                            </button>
+                        </div>
+                    </div>
+                    <div class="stats-grid" id="compareStats"></div>
+                    <div class="compare-grid" id="compareGrid"></div>
+                </div>
+
+                <!-- Gua View -->
+                <div id="guaView" style="display:none">
+                    <div class="history-view-header">
+                        <h2 class="history-view-title">六十四卦</h2>
+                    </div>
+                    <div class="search-box">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--text-tertiary)">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.3-4.3"></path>
+                        </svg>
+                        <input type="text" id="guaSearch" placeholder="搜索卦名..." oninput="renderGuaView()">
+                    </div>
+                    <div class="gua-grid" id="guaGrid"></div>
+                </div>
+
+                <!-- Pratitya View -->
+                <div id="pratityaView" style="display:none">
+                    <div class="history-view-header">
+                        <h2 class="history-view-title">十二因缘</h2>
+                    </div>
+                    <div class="pratitya-chain-visual" id="pratityaChain"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
