@@ -1552,58 +1552,15 @@ function shareResult() {
 // SETTINGS MODAL
 // ════════════════════════════════════════
 function openSettings() {
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay active';
-    overlay.id = 'settingsOverlay';
-    overlay.innerHTML = `
-        <div class="modal-panel" style="width:420px" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <div class="modal-title">设置</div>
-                <button class="modal-close" onclick="closeSettings()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="settings-section">
-                    <div class="settings-title">通用</div>
-                    <label class="settings-item">
-                        <span class="settings-label">自动保存草稿</span>
-                        <input type="checkbox" class="settings-toggle" ${state.settings.autoSave ? 'checked' : ''} onchange="toggleSetting('autoSave', this.checked)">
-                    </label>
-                    <label class="settings-item">
-                        <span class="settings-label">动画效果</span>
-                        <input type="checkbox" class="settings-toggle" ${state.settings.animations ? 'checked' : ''} onchange="toggleSetting('animations', this.checked)">
-                    </label>
-                    <label class="settings-item">
-                        <span class="settings-label">紧凑模式</span>
-                        <input type="checkbox" class="settings-toggle" ${state.settings.compactMode ? 'checked' : ''} onchange="toggleSetting('compactMode', this.checked)">
-                    </label>
-                </div>
-                <div class="settings-section">
-                    <div class="settings-title">数据</div>
-                    <button class="header-btn" style="width:100%;margin-bottom:8px" onclick="exportAllData()">导出所有数据 (JSON)</button>
-                    <button class="header-btn" style="width:100%;color:var(--danger)" onclick="clearAllData()">清除所有数据</button>
-                </div>
-                <div class="settings-section">
-                    <div class="settings-title">关于</div>
-                    <div class="settings-about">
-                        <div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:4px">易因 · 世界分析引擎</div>
-                        <div style="font-size:12px;color:var(--text-tertiary)">版本 v4.0 · 易经64卦 + 佛教十二因缘</div>
-                        <div style="font-size:12px;color:var(--text-tertiary);margin-top:4px">本地运行，数据存储于浏览器 IndexedDB</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(overlay);
+    document.getElementById('settingsOverlay').classList.add('active');
+    // Sync checkbox states
+    document.getElementById('settingAutoSave').checked = state.settings.autoSave;
+    document.getElementById('settingAnimations').checked = state.settings.animations;
+    document.getElementById('settingCompactMode').checked = state.settings.compactMode;
 }
 
 function closeSettings() {
-    const overlay = document.getElementById('settingsOverlay');
-    if (overlay) overlay.remove();
+    document.getElementById('settingsOverlay').classList.remove('active');
 }
 
 function toggleSetting(key, value) {
@@ -2183,8 +2140,8 @@ function renderResult(result) {
 
     if (state.selectedDim === 'all' || state.selectedDim === 'yijing') {
         html += `
-        <div class="result-card" data-scroll-animation="fadeIn">
-            <div class="result-header">
+        <div class="result-card collapsible" data-scroll-animation="fadeIn">
+            <div class="result-header" onclick="toggleResultCard(this)">
                 <div class="gua-symbol">${gua.symbol}</div>
                 <div class="gua-info">
                     <h3>${gua.fullname}</h3>
@@ -2195,6 +2152,7 @@ function renderResult(result) {
                     </div>
                 </div>
             </div>
+            <div class="result-body">
             <div style="margin-bottom:16px;">
                 ${gua.keywords.map(k => `<span class="tag tag-yang">${k}</span>`).join('')}
             </div>
@@ -2240,13 +2198,14 @@ function renderResult(result) {
                 </div>
             </div>
             ` : ''}
+            </div>
         </div>`;
     }
 
     if (state.selectedDim === 'all' || state.selectedDim === 'buddhism') {
         html += `
-        <div class="result-card" data-scroll-animation="fadeIn">
-            <div class="result-header">
+        <div class="result-card collapsible" data-scroll-animation="fadeIn">
+            <div class="result-header" onclick="toggleResultCard(this)">
                 <div class="gua-symbol">☸</div>
                 <div class="gua-info">
                     <h3>十二因缘分析</h3>
@@ -2255,6 +2214,7 @@ function renderResult(result) {
                     </div>
                 </div>
             </div>
+            <div class="result-body">
             <div class="chain-display">
                 ${pratitya.chain.map((node, i) => `
                     <div class="chain-node ${node.data.color} ${node.isPrimary ? 'active' : ''}" title="${node.data.meaning}">
@@ -2281,13 +2241,14 @@ function renderResult(result) {
                 <p><strong style="color:var(--success)">突破点：</strong>${pratitya.secondary.breakPoint}</p>
             </div>
             ` : ''}
+            </div>
         </div>`;
     }
 
     if (state.selectedDim === 'all') {
         html += `
-        <div class="result-card cross-analysis" data-scroll-animation="fadeIn">
-            <div class="result-header">
+        <div class="result-card cross-analysis collapsible" data-scroll-animation="fadeIn">
+            <div class="result-header" onclick="toggleResultCard(this)">
                 <div class="gua-symbol">◈</div>
                 <div class="gua-info">
                     <h3>交叉分析</h3>
@@ -2297,12 +2258,14 @@ function renderResult(result) {
                     </div>
                 </div>
             </div>
+            <div class="result-body">
             <div class="content-block">
                 <p>${cross}</p>
             </div>
+            </div>
         </div>
-        <div class="result-card" data-scroll-animation="fadeIn">
-            <div class="result-header">
+        <div class="result-card collapsible" data-scroll-animation="fadeIn">
+            <div class="result-header" onclick="toggleResultCard(this)">
                 <div class="gua-symbol">◉</div>
                 <div class="gua-info">
                     <h3>干预建议</h3>
@@ -2311,6 +2274,7 @@ function renderResult(result) {
                     </div>
                 </div>
             </div>
+            <div class="result-body">
             <div class="action-items">
                 ${actions.map((action, i) => `
                     <div class="action-item">
@@ -2321,6 +2285,7 @@ function renderResult(result) {
                         </div>
                     </div>
                 `).join('')}
+            </div>
             </div>
         </div>`;
     }
@@ -2335,6 +2300,12 @@ function renderResult(result) {
         }
         document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 50);
+}
+
+function toggleResultCard(header) {
+    const card = header.closest('.result-card');
+    if (!card) return;
+    card.classList.toggle('collapsed');
 }
 
 // ════════════════════════════════════════

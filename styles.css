@@ -2706,6 +2706,115 @@ html {
 }
 
 /* ════════════════════════════════════════
+   COLLAPSIBLE RESULT CARDS
+   ════════════════════════════════════════ */
+.result-card {
+    position: relative;
+}
+
+.result-card.collapsible .result-header {
+    cursor: pointer;
+    user-select: none;
+    transition: background var(--transition-fast);
+}
+
+.result-card.collapsible .result-header:hover {
+    background: var(--surface-hover);
+}
+
+.result-card.collapsible .result-header::after {
+    content: '';
+    width: 20px;
+    height: 20px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    margin-left: auto;
+    flex-shrink: 0;
+    transition: transform var(--transition-fast);
+    opacity: 0.5;
+}
+
+.result-card.collapsible.collapsed .result-header::after {
+    transform: rotate(-90deg);
+}
+
+.result-card.collapsible .result-body {
+    overflow: hidden;
+    transition: max-height var(--transition-slow), opacity var(--transition-base), padding var(--transition-base);
+    max-height: 2000px;
+    opacity: 1;
+}
+
+.result-card.collapsible.collapsed .result-body {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+.result-card.collapsible .result-header .gua-info {
+    flex: 1;
+    min-width: 0;
+}
+
+/* ════════════════════════════════════════
+   ENHANCED GLASSMORPHISM
+   ════════════════════════════════════════ */
+.modal-panel,
+.export-panel {
+    background: linear-gradient(135deg, rgba(22,22,31,0.95) 0%, rgba(12,12,18,0.98) 100%);
+    backdrop-filter: blur(40px) saturate(1.2);
+    -webkit-backdrop-filter: blur(40px) saturate(1.2);
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(201,169,110,0.05);
+}
+
+.result-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
+    backdrop-filter: blur(20px) saturate(1.1);
+    -webkit-backdrop-filter: blur(20px) saturate(1.1);
+    border: 1px solid rgba(255,255,255,0.05);
+    box-shadow: 0 4px 24px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.result-card:hover {
+    border-color: rgba(255,255,255,0.08);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.input-card {
+    background: linear-gradient(180deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.015) 100%);
+    backdrop-filter: blur(24px) saturate(1.15);
+    -webkit-backdrop-filter: blur(24px) saturate(1.15);
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+
+.cmd-panel {
+    background: linear-gradient(180deg, rgba(22,22,31,0.98) 0%, rgba(14,14,20,0.99) 100%);
+    backdrop-filter: blur(48px) saturate(1.2);
+    -webkit-backdrop-filter: blur(48px) saturate(1.2);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(201,169,110,0.06);
+}
+
+/* Subtle top light reflection on cards */
+.result-card::before,
+.input-card::before,
+.modal-panel::before,
+.cmd-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 12px;
+    right: 12px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+    pointer-events: none;
+}
+
+/* ════════════════════════════════════════
    CUSTOM CURSOR (optional desktop)
    ════════════════════════════════════════ */
 @media (pointer: fine) {
