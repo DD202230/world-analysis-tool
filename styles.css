@@ -1806,6 +1806,119 @@ body {
 
 .tag-input::placeholder { color: var(--text-disabled); }
 
+.settings-section { margin-bottom: var(--space-5); }
+.settings-section:last-child { margin-bottom: 0; }
+
+.settings-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: var(--space-3);
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.settings-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-3) 0;
+    cursor: pointer;
+}
+
+.settings-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.settings-toggle {
+    appearance: none;
+    width: 40px;
+    height: 22px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-full);
+    position: relative;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.settings-toggle::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    background: var(--text-tertiary);
+    border-radius: 50%;
+    transition: all var(--transition-fast);
+}
+
+.settings-toggle:checked {
+    background: var(--accent-glow);
+    border-color: var(--border-accent);
+}
+
+.settings-toggle:checked::after {
+    left: 20px;
+    background: var(--accent-400);
+}
+
+.settings-about {
+    padding: var(--space-4);
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-subtle);
+}
+
+/* ════════════════════════════════════════
+   COMPACT MODE
+   ════════════════════════════════════════ */
+body.compact-mode .hero {
+    padding: var(--space-8) 0 var(--space-6);
+}
+
+body.compact-mode .hero-title {
+    font-size: 32px;
+}
+
+body.compact-mode .input-card {
+    padding: var(--space-4);
+}
+
+body.compact-mode .result-card {
+    padding: var(--space-4);
+}
+
+body.compact-mode .content-block {
+    margin-bottom: var(--space-4);
+}
+
+/* ════════════════════════════════════════
+   REDUCED MOTION
+   ════════════════════════════════════════ */
+body.reduced-motion *,
+body.reduced-motion *::before,
+body.reduced-motion *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+}
+
+body.reduced-motion [data-scroll-animation] {
+    opacity: 1;
+}
+
+body.reduced-motion .result-card,
+body.reduced-motion .pratitya-node-large,
+body.reduced-motion .yao-line {
+    opacity: 1;
+    transform: none;
+}
+
 /* ════════════════════════════════════════
    RESPONSIVE
    ════════════════════════════════════════ */
@@ -2122,8 +2235,542 @@ body {
 }
 
 /* ════════════════════════════════════════
-   PRATITYA NODE COLORS
+   WAAPI LOADER
    ════════════════════════════════════════ */
+.waapi-loader {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.waapi-loader-ring {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-400);
+    border-radius: 50%;
+}
+
+/* ════════════════════════════════════════
+   SCROLL ANIMATION UTILITIES
+   ════════════════════════════════════════ */
+[data-scroll-animation] {
+    opacity: 0;
+    will-change: opacity, transform;
+}
+
+[data-scroll-animation].animated {
+    opacity: 1;
+}
+
+/* ════════════════════════════════════════
+   SIDEBAR OVERLAY
+   ════════════════════════════════════════ */
+.sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 99;
+    opacity: 0;
+    animation: fadeIn 250ms forwards;
+}
+
+/* ════════════════════════════════════════
+   ENHANCED FOCUS STATES
+   ════════════════════════════════════════ */
+.main-textarea:focus {
+    outline: none;
+    border-color: var(--border-accent);
+    background: var(--bg-floating);
+    box-shadow: 0 0 0 3px rgba(201,169,110,0.08), 0 0 40px rgba(201,169,110,0.06);
+}
+
+.input-card:focus-within {
+    border-color: var(--border-accent);
+    box-shadow: 0 0 0 1px rgba(201,169,110,0.1), var(--shadow-glow);
+}
+
+.search-box:focus-within {
+    border-color: var(--border-accent);
+    background: var(--bg-floating);
+    box-shadow: 0 0 0 3px rgba(201,169,110,0.06);
+}
+
+/* ════════════════════════════════════════
+   ENHANCED BUTTON INTERACTIONS
+   ════════════════════════════════════════ */
+.header-btn, .nav-item, .gua-card, .history-card, .history-card-action, .option-chip {
+    transition: transform 150ms cubic-bezier(0.4, 0, 0.2, 1), box-shadow 150ms ease;
+}
+
+.header-btn:active, .nav-item:active, .gua-card:active, .history-card:active, .history-card-action:active, .option-chip:active {
+    transform: scale(0.97);
+}
+
+/* ════════════════════════════════════════
+   ENHANCED TOAST
+   ════════════════════════════════════════ */
+.toast {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    padding: 12px 20px;
+    border-radius: var(--radius-lg);
+    color: var(--text-primary);
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    box-shadow: var(--shadow-lg);
+    pointer-events: auto;
+    min-width: 200px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: var(--space-2);
+}
+
+/* ════════════════════════════════════════
+   VIEW TRANSITION BASE
+   ════════════════════════════════════════ */
+#analyzeView, #historyView, #favoritesView, #compareView, #guaView, #pratityaView {
+    will-change: opacity, transform;
+}
+
+/* ════════════════════════════════════════
+   RESULT CARD ENHANCED ENTRANCE
+   ════════════════════════════════════════ */
+.result-card {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.result-card.visible {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1), transform 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ════════════════════════════════════════
+   HERO ENTRANCE
+   ════════════════════════════════════════ */
+.hero-badge, .hero-title, .hero-subtitle {
+    opacity: 0;
+}
+
+.hero-loaded .hero-badge {
+    animation: fadeIn 500ms 100ms forwards;
+}
+
+.hero-loaded .hero-title {
+    animation: fadeIn 600ms 200ms forwards;
+}
+
+.hero-loaded .hero-subtitle {
+    animation: fadeIn 500ms 350ms forwards;
+}
+
+/* ════════════════════════════════════════
+   PRATITYA NODE ENHANCED
+   ════════════════════════════════════════ */
+.pratitya-node-large {
+    opacity: 0;
+    transform: translateX(-10px);
+}
+
+.pratitya-node-large.visible {
+    opacity: 1;
+    transform: translateX(0);
+    transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ════════════════════════════════════════
+   CHAIN NODE PULSE
+   ════════════════════════════════════════ */
+.chain-node.active {
+    animation: pulse-glow 2s infinite;
+}
+
+/* ════════════════════════════════════════
+   ENHANCED YAO LINES
+   ════════════════════════════════════════ */
+.yao-bar.moving {
+    animation: pulse-glow 2s infinite;
+}
+
+.yao-line {
+    opacity: 0;
+    transform: translateX(-8px);
+}
+
+.yao-line.visible {
+    opacity: 1;
+    transform: translateX(0);
+    transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ════════════════════════════════════════
+   CMD PALETTE ENHANCED
+   ════════════════════════════════════════ */
+.cmd-item.selected {
+    background: var(--surface-selected);
+    border-left: 3px solid var(--accent-400);
+}
+
+.cmd-item {
+    border-left: 3px solid transparent;
+    transition: all 100ms ease;
+}
+
+/* ════════════════════════════════════════
+   SMOOTH SCROLL
+   ════════════════════════════════════════ */
+html {
+    scroll-behavior: smooth;
+}
+
+/* ════════════════════════════════════════
+   REDUCED MOTION
+   ════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    [data-scroll-animation] {
+        opacity: 1;
+    }
+    
+    .result-card, .pratitya-node-large, .yao-line {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* ════════════════════════════════════════
+   ANIMATED BACKGROUND PARTICLES
+   ════════════════════════════════════════ */
+.particles-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.particle {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(201,169,110,0.08) 0%, transparent 70%);
+    animation: particle-float 15s infinite ease-in-out;
+}
+
+@keyframes particle-float {
+    0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+    25% { transform: translateY(-30px) translateX(15px); opacity: 0.6; }
+    50% { transform: translateY(-15px) translateX(-10px); opacity: 0.4; }
+    75% { transform: translateY(-40px) translateX(5px); opacity: 0.5; }
+}
+
+/* ════════════════════════════════════════
+   GLASS MORPHISM ENHANCEMENTS
+   ════════════════════════════════════════ */
+.glass-strong {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ════════════════════════════════════════
+   GRADIENT BORDER EFFECT
+   ════════════════════════════════════════ */
+.gradient-border {
+    position: relative;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-xl);
+}
+
+.gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: calc(var(--radius-xl) + 1px);
+    background: linear-gradient(135deg, rgba(201,169,110,0.2), rgba(90,154,110,0.1), rgba(107,140,174,0.15));
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 300ms ease;
+}
+
+.gradient-border:hover::before {
+    opacity: 1;
+}
+
+/* ════════════════════════════════════════
+   FLOATING ACTION BUTTON
+   ════════════════════════════════════════ */
+.fab {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent-400), var(--accent-500));
+    border: none;
+    color: var(--bg-primary);
+    font-size: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(201,169,110,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: all 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fab:hover {
+    transform: scale(1.1) translateY(-2px);
+    box-shadow: 0 8px 32px rgba(201,169,110,0.4);
+}
+
+.fab:active {
+    transform: scale(0.95);
+}
+
+@media (min-width: 769px) {
+    .fab { display: none; }
+}
+
+/* ════════════════════════════════════════
+   ENHANCED TAG CHIP
+   ════════════════════════════════════════ */
+.tag-chip {
+    transition: all 150ms ease;
+}
+
+.tag-chip:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(201,169,110,0.15);
+}
+
+/* ════════════════════════════════════════
+   OPTION CHIP ENHANCED
+   ════════════════════════════════════════ */
+.option-chip {
+    position: relative;
+    overflow: hidden;
+}
+
+.option-chip::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(201,169,110,0.05), transparent);
+    opacity: 0;
+    transition: opacity 200ms ease;
+}
+
+.option-chip:hover::after {
+    opacity: 1;
+}
+
+/* ════════════════════════════════════════
+   LIVE PREVIEW ENHANCED
+   ════════════════════════════════════════ */
+.live-preview {
+    transition: all 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.live-tag {
+    transition: all 150ms ease;
+}
+
+.live-tag:hover {
+    transform: translateY(-1px);
+}
+
+/* ════════════════════════════════════════
+   TIME DIVINATION ENHANCED
+   ════════════════════════════════════════ */
+.time-divination {
+    position: relative;
+    overflow: hidden;
+}
+
+.time-divination::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(201,169,110,0.03) 0%, transparent 70%);
+    animation: rotate 20s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes rotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ════════════════════════════════════════
+   ACTION ITEM ENHANCED
+   ════════════════════════════════════════ */
+.action-item {
+    position: relative;
+    overflow: hidden;
+}
+
+.action-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--accent-400), var(--accent-600));
+    opacity: 0;
+    transition: opacity 200ms ease;
+}
+
+.action-item:hover::before {
+    opacity: 1;
+}
+
+/* ════════════════════════════════════════
+   STAT CARD ENHANCED
+   ════════════════════════════════════════ */
+.stat-card {
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent-400), transparent);
+    opacity: 0;
+    transition: opacity 300ms ease;
+}
+
+.stat-card:hover::after {
+    opacity: 1;
+}
+
+/* ════════════════════════════════════════
+   EXPORT PREVIEW ENHANCED
+   ════════════════════════════════════════ */
+.export-preview-card {
+    position: relative;
+}
+
+.export-preview-card::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: calc(var(--radius-xl) + 2px);
+    background: linear-gradient(135deg, rgba(201,169,110,0.1), rgba(90,154,110,0.05), rgba(107,140,174,0.08));
+    z-index: -1;
+    opacity: 0.5;
+}
+
+/* ════════════════════════════════════════
+   EMPTY STATE ENHANCED
+   ════════════════════════════════════════ */
+.empty-state {
+    opacity: 0;
+    animation: fadeInScale 500ms 100ms forwards;
+}
+
+/* ════════════════════════════════════════
+   MOBILE ENHANCEMENTS
+   ════════════════════════════════════════ */
+@media (max-width: 768px) {
+    .sidebar {
+        transition: transform 350ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .hero-title {
+        font-size: 28px;
+        letter-spacing: 3px;
+    }
+    
+    .content {
+        padding: var(--space-5) var(--space-4);
+    }
+}
+
+/* ════════════════════════════════════════
+   CUSTOM CURSOR (optional desktop)
+   ════════════════════════════════════════ */
+@media (pointer: fine) {
+    .btn-analyze,
+    .header-btn,
+    .nav-item,
+    .gua-card,
+    .history-card,
+    .option-chip,
+    .cmd-item {
+        cursor: pointer;
+    }
+}
+
+/* ════════════════════════════════════════
+   SELECTION ENHANCED
+   ════════════════════════════════════════ */
+::selection {
+    background: rgba(201,169,110,0.2);
+    color: var(--accent-200);
+}
+
+/* ════════════════════════════════════════
+   FOCUS VISIBLE
+   ════════════════════════════════════════ */
+:focus-visible {
+    outline: 2px solid var(--accent-400);
+    outline-offset: 2px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--accent-400);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+/* ════════════════════════════════════════
+   SCROLLBAR ENHANCED
+   ════════════════════════════════════════ */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: var(--radius-full);
+    transition: background 150ms ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
 .pratitya-node-num.node-avidya { background: rgba(201,79,79,0.2); color: #e8a0a0; }
 .pratitya-node-num.node-samskara { background: rgba(201,140,79,0.2); color: #e8c4a0; }
 .pratitya-node-num.node-vijnana { background: rgba(201,169,110,0.2); color: var(--accent-300); }

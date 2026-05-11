@@ -14,6 +14,8 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="particles-container" id="particles"></div>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -141,12 +143,15 @@
                 </div>
             </nav>
             
-            <div class="sidebar-footer">
-                <div class="user-info">
-                    <div class="user-avatar">易</div>
-                    <span class="user-name">本地用户</span>
-                </div>
-            </div>
+    <div class="sidebar-footer">
+        <div class="user-info" onclick="openSettings()" title="打开设置">
+            <div class="user-avatar">易</div>
+            <span class="user-name">设置 & 数据</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left:auto;color:var(--text-tertiary)">
+                <path d="M9 18l6-6-6-6"></path>
+            </svg>
+        </div>
+    </div>
         </aside>
 
         <!-- Main Content -->
@@ -432,6 +437,7 @@
         </main>
     </div>
 
+    <script src="animations.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

@@ -67,6 +67,17 @@ async function dbClear(storeName) {
     });
 }
 
+async function dbGet(storeName, key) {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(storeName, 'readonly');
+        const store = tx.objectStore(storeName);
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+}
+
 // ════════════════════════════════════════
 // STATE MANAGEMENT
 // ════════════════════════════════════════
@@ -80,11 +91,115 @@ const state = {
     currentResult: null,
     timeGua: null,
     compareList: JSON.parse(localStorage.getItem('yiyin_compare') || '[]'),
-    currentTags: []
+    currentTags: [],
+    draftId: null,
+    settings: {
+        autoSave: true,
+        animations: true,
+        soundEffects: false,
+        compactMode: false
+    }
 };
 
 // ════════════════════════════════════════
-// COMMAND PALETTE
+// SETTINGS PERSISTENCE
+// ════════════════════════════════════════
+async function loadSettings() {
+    const saved = await dbGet('settings', 'app_settings');
+    if (saved) {
+        state.settings = { ...state.settings, ...saved.value };
+    }
+    applySettings();
+}
+
+async function saveSettings() {
+    await dbPut('settings', { key: 'app_settings', value: state.settings });
+}
+
+function applySettings() {
+    document.body.classList.toggle('reduced-motion', !state.settings.animations);
+    document.body.classList.toggle('compact-mode', state.settings.compactMode);
+}
+
+// ════════════════════════════════════════
+// DRAFT AUTO-SAVE
+// ════════════════════════════════════════
+let draftSaveTimeout;
+function onScenarioInput() {
+    updateCharCount();
+    clearTimeout(livePreviewTimeout);
+    const text = document.getElementById('scenario').value.trim();
+
+    if (text.length < 5) {
+        document.getElementById('livePreview').classList.remove('active');
+    } else {
+        livePreviewTimeout = setTimeout(() => {
+            updateLivePreview(text);
+        }, 300);
+    }
+
+    // Auto-save draft
+    if (state.settings.autoSave) {
+        clearTimeout(draftSaveTimeout);
+        draftSaveTimeout = setTimeout(() => {
+            saveDraft(text);
+        }, 1000);
+    }
+}
+
+async function saveDraft(text) {
+    if (!text) {
+        await dbDelete('settings', 'draft');
+        return;
+    }
+    await dbPut('settings', {
+        key: 'draft',
+        value: {
+            text,
+            tags: state.currentTags,
+            dim: state.selectedDim,
+            type: state.selectedType,
+            timestamp: Date.now()
+        }
+    });
+}
+
+async function loadDraft() {
+    const draft = await dbGet('settings', 'draft');
+    if (draft && draft.value) {
+        const d = draft.value;
+        const age = Date.now() - (d.timestamp || 0);
+        // Only restore drafts less than 7 days old
+        if (age < 7 * 24 * 60 * 60 * 1000) {
+            document.getElementById('scenario').value = d.text || '';
+            state.currentTags = d.tags || [];
+            state.selectedDim = d.dim || 'all';
+            state.selectedType = d.type || null;
+            renderTags();
+            updateCharCount();
+            // Restore dimension selection
+            document.querySelectorAll('[data-dim]').forEach(b => {
+                b.classList.toggle('selected', b.dataset.dim === state.selectedDim);
+            });
+            // Restore type selection
+            document.querySelectorAll('[data-type]').forEach(b => {
+                b.classList.toggle('selected', b.dataset.type === state.selectedType);
+            });
+            updateLivePreview(d.text);
+        }
+    }
+}
+
+function clearInput() {
+    document.getElementById('scenario').value = '';
+    updateCharCount();
+    document.getElementById('results').classList.remove('active');
+    document.getElementById('livePreview').classList.remove('active');
+    state.currentResult = null;
+    state.currentTags = [];
+    renderTags();
+    dbDelete('settings', 'draft');
+}
 // ════════════════════════════════════════
 const commands = [
     { id: 'new', label: '新建分析', shortcut: '⌘N', icon: '⚡', action: () => { switchView('analyze'); closeCmdPalette(); } },
@@ -93,17 +208,20 @@ const commands = [
     { id: 'compare', label: '对比模式', shortcut: '⌘⇧C', icon: '⚖️', action: () => { switchView('compare'); closeCmdPalette(); } },
     { id: 'gua', label: '六十四卦', shortcut: '⌘1', icon: '☰', action: () => { switchView('gua'); closeCmdPalette(); } },
     { id: 'pratitya', label: '十二因缘', shortcut: '⌘2', icon: '☸', action: () => { switchView('pratitya'); closeCmdPalette(); } },
-    { id: 'export', label: '导出结果', shortcut: '⌘E', icon: '📥', action: () => { exportResult('markdown'); closeCmdPalette(); } },
-    { id: 'share', label: '分享', shortcut: '⌘⇧S', icon: '🔗', action: () => { shareResult(); closeCmdPalette(); } },
+    { id: 'export', label: '导出 Markdown', shortcut: '⌘E', icon: '📥', action: () => { exportResult('markdown'); closeCmdPalette(); } },
+    { id: 'pdf', label: '导出 PDF', shortcut: '⌘⇧P', icon: '📄', action: () => { exportResult('pdf'); closeCmdPalette(); } },
+    { id: 'share', label: '复制分享链接', shortcut: '⌘⇧S', icon: '🔗', action: () => { shareResult(); closeCmdPalette(); } },
     { id: 'image', label: '导出图片', shortcut: '⌘⇧I', icon: '🖼️', action: () => { openExportImage(); closeCmdPalette(); } },
     { id: 'clear', label: '清空输入', shortcut: '⌘⇧X', icon: '🗑️', action: () => { clearInput(); closeCmdPalette(); } },
     { id: 'time', label: '时间起卦', shortcut: '⌘T', icon: '⏰', action: () => { refreshTimeGua(); closeCmdPalette(); } },
+    { id: 'settings', label: '设置', shortcut: '⌘,', icon: '⚙️', action: () => { openSettings(); closeCmdPalette(); } },
 ];
 
 function openCmdPalette() {
     document.getElementById('cmdOverlay').classList.add('active');
     document.getElementById('cmdInput').value = '';
     document.getElementById('cmdInput').focus();
+    cmdSelectedIndex = 0;
     renderCommands(commands);
 }
 
@@ -170,6 +288,14 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         openExportImage();
     }
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'p') {
+        e.preventDefault();
+        exportResult('pdf');
+    }
+    if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+        e.preventDefault();
+        openSettings();
+    }
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'x') {
         e.preventDefault();
         clearInput();
@@ -182,6 +308,7 @@ document.addEventListener('keydown', (e) => {
         closeCmdPalette();
         closeCompareModal();
         closeExportImage();
+        closeSettings();
     }
 });
 
@@ -205,15 +332,28 @@ function switchView(view) {
     };
     document.getElementById('pageTitle').textContent = titles[view] || '易因';
 
-    ['analyze', 'history', 'favorites', 'compare', 'gua', 'pratitya'].forEach(v => {
+    const views = ['analyze', 'history', 'favorites', 'compare', 'gua', 'pratitya'];
+    const currentEl = document.getElementById(state.currentView + 'View');
+    
+    views.forEach(v => {
         const el = document.getElementById(v + 'View');
-        if (el) el.style.display = v === view ? 'block' : 'none';
+        if (el) {
+            if (v === view) {
+                if (window.YIYIN_ANIMATIONS) {
+                    window.YIYIN_ANIMATIONS.transitionView(currentEl && currentEl !== el ? currentEl : null, el);
+                } else {
+                    el.style.display = 'block';
+                }
+            } else {
+                el.style.display = 'none';
+            }
+        }
     });
 
-    if (view === 'history') renderHistoryView();
+    if (view === 'history') { renderHistoryView(); setTimeout(() => window.YIYIN_ANIMATIONS?.animateHistoryCards(), 100); }
     if (view === 'favorites') renderFavoritesView();
     if (view === 'compare') renderCompareView();
-    if (view === 'gua') renderGuaView();
+    if (view === 'gua') { renderGuaView(); setTimeout(() => window.YIYIN_ANIMATIONS?.animateGuaCards(), 100); }
     if (view === 'pratitya') renderPratityaView();
 
     if (window.innerWidth <= 768) {
@@ -222,7 +362,23 @@ function switchView(view) {
 }
 
 function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
+    const sidebar = document.getElementById('sidebar');
+    if (window.innerWidth <= 768) {
+        if (sidebar.classList.contains('open')) {
+            if (window.YIYIN_ANIMATIONS) {
+                const overlay = document.querySelector('.sidebar-overlay');
+                window.YIYIN_ANIMATIONS.animateSidebarClose(sidebar, overlay);
+            } else {
+                sidebar.classList.remove('open');
+            }
+        } else {
+            if (window.YIYIN_ANIMATIONS) {
+                window.YIYIN_ANIMATIONS.animateSidebarOpen(sidebar);
+            } else {
+                sidebar.classList.add('open');
+            }
+        }
+    }
 }
 
 // ════════════════════════════════════════
@@ -232,6 +388,9 @@ function selectDim(el) {
     document.querySelectorAll('[data-dim]').forEach(b => b.classList.remove('selected'));
     el.classList.add('selected');
     state.selectedDim = el.dataset.dim;
+    if (state.settings.autoSave) {
+        saveDraft(document.getElementById('scenario').value);
+    }
 }
 
 function selectType(el) {
@@ -243,21 +402,14 @@ function selectType(el) {
     } else {
         state.selectedType = null;
     }
+    if (state.settings.autoSave) {
+        saveDraft(document.getElementById('scenario').value);
+    }
 }
 
 function updateCharCount() {
     const count = document.getElementById('scenario').value.length;
     document.getElementById('charCount').textContent = count + ' 字';
-}
-
-function clearInput() {
-    document.getElementById('scenario').value = '';
-    updateCharCount();
-    document.getElementById('results').classList.remove('active');
-    document.getElementById('livePreview').classList.remove('active');
-    state.currentResult = null;
-    state.currentTags = [];
-    renderTags();
 }
 
 const examples = [
@@ -285,12 +437,19 @@ function onTagInput(e) {
         if (val && !state.currentTags.includes(val)) {
             state.currentTags.push(val);
             renderTags();
+            // Save draft when tags change
+            if (state.settings.autoSave) {
+                saveDraft(document.getElementById('scenario').value);
+            }
         }
         e.target.value = '';
     }
     if (e.key === 'Backspace' && !e.target.value && state.currentTags.length > 0) {
         state.currentTags.pop();
         renderTags();
+        if (state.settings.autoSave) {
+            saveDraft(document.getElementById('scenario').value);
+        }
     }
 }
 
@@ -944,16 +1103,587 @@ ${actions.map((a, i) => `${i + 1}. **${a.title}**: ${a.desc}`).join('\n\n')}
     }
 }
 
+function exportResult(format) {
+    if (!state.currentResult) {
+        showToast('请先进行分析');
+        return;
+    }
+
+    if (format === 'json') {
+        const data = JSON.stringify(state.currentResult, null, 2);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `yiyin-analysis-${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('JSON 已导出');
+    } else if (format === 'markdown') {
+        const { gua, pratitya, cross, actions, scenario } = state.currentResult;
+        const md = `# 易因分析报告
+
+|**分析时间**: ${new Date().toLocaleString('zh-CN')}
+|**分析场景**: ${scenario}
+
+---
+
+## 卦象 · ${gua.fullname}
+
+- **卦符**: ${gua.symbol}
+- **性质**: ${gua.nature}
+- **阶段**: ${gua.phase}
+
+### 卦象释义
+${gua.meaning}
+
+### 当前位置
+${gua.position}
+
+### 危险警示
+${gua.danger}
+
+### 转化方向
+${gua.transform}
+
+---
+
+## 十二因缘 · ${pratitya.primary.name}
+
+### 主要卡点
+- **含义**: ${pratitya.primary.meaning}
+- **表现**: ${pratitya.primary.manifestation}
+- **在决策中**: ${pratitya.primary.inDecision}
+- **突破点**: ${pratitya.primary.breakPoint}
+
+${pratitya.secondary ? `### 次要卡点 · ${pratitya.secondary.name}
+- **含义**: ${pratitya.secondary.meaning}
+- **突破点**: ${pratitya.secondary.breakPoint}
+` : ''}
+
+---
+
+## 交叉分析
+
+${cross}
+
+---
+
+## 干预建议
+
+${actions.map((a, i) => `${i + 1}. **${a.title}**: ${a.desc}`).join('\n\n')}
+
+---
+
+*由 易因 · 世界分析引擎 生成*`;
+
+        const blob = new Blob([md], { type: 'text/markdown' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `yiyin-analysis-${Date.now()}.md`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('Markdown 已导出');
+    } else if (format === 'pdf') {
+        exportToPDF();
+    }
+}
+
+function exportToPDF() {
+    const { gua, pratitya, cross, actions, scenario, movingYao, changedGua } = state.currentResult;
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        showToast('请允许弹出窗口以导出 PDF');
+        return;
+    }
+
+    const html = `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>易因分析报告</title>
+<style>
+@page { size: A4; margin: 2cm; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: 'Noto Serif SC', 'Songti SC', serif;
+    font-size: 11pt;
+    line-height: 1.8;
+    color: #333;
+    background: #fff;
+    padding: 40px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+.header {
+    text-align: center;
+    padding-bottom: 30px;
+    border-bottom: 2px solid #c9a96e;
+    margin-bottom: 30px;
+}
+.header h1 {
+    font-size: 28pt;
+    color: #1a1a2e;
+    letter-spacing: 8px;
+    margin-bottom: 8px;
+}
+.header .subtitle {
+    font-size: 12pt;
+    color: #666;
+}
+.header .meta {
+    font-size: 10pt;
+    color: #999;
+    margin-top: 12px;
+}
+.section {
+    margin-bottom: 28px;
+    page-break-inside: avoid;
+}
+.section-title {
+    font-size: 14pt;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 12px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.section-title .symbol {
+    font-size: 20pt;
+    color: #c9a96e;
+}
+.tag {
+    display: inline-block;
+    padding: 2px 10px;
+    background: #f5f0e8;
+    border: 1px solid #e0d5c0;
+    border-radius: 4px;
+    font-size: 9pt;
+    color: #8a7a5a;
+    margin-right: 6px;
+    margin-bottom: 6px;
+}
+.gua-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+.gua-symbol {
+    width: 60px; height: 60px;
+    background: linear-gradient(135deg, #f5f0e8, #e8e0d0);
+    border: 1px solid #d0c8b8;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28pt;
+    color: #c9a96e;
+    flex-shrink: 0;
+}
+.gua-info h2 {
+    font-size: 18pt;
+    color: #1a1a2e;
+    letter-spacing: 4px;
+}
+.gua-info .phase {
+    font-size: 10pt;
+    color: #666;
+    margin-top: 4px;
+}
+.content-block {
+    margin-bottom: 16px;
+}
+.content-block h4 {
+    font-size: 11pt;
+    font-weight: 600;
+    color: #444;
+    margin-bottom: 6px;
+}
+.content-block p {
+    font-size: 10.5pt;
+    color: #555;
+    line-height: 1.8;
+}
+.action-item {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 12px;
+    background: #faf8f5;
+    border-radius: 6px;
+    border-left: 3px solid #c9a96e;
+}
+.action-num {
+    width: 24px; height: 24px;
+    background: #c9a96e;
+    color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10pt;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.action-content h5 {
+    font-size: 10.5pt;
+    font-weight: 600;
+    color: #8a7a5a;
+    margin-bottom: 4px;
+}
+.action-content p {
+    font-size: 10pt;
+    color: #666;
+    line-height: 1.6;
+}
+.chain {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    margin: 12px 0;
+    padding: 12px;
+    background: #faf8f5;
+    border-radius: 6px;
+}
+.chain-node {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 9pt;
+    background: #e8e0d0;
+    color: #5a5040;
+}
+.chain-node.active {
+    background: #c9a96e;
+    color: #fff;
+}
+.chain-arrow {
+    color: #999;
+    font-size: 9pt;
+}
+.footer {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+    text-align: center;
+    font-size: 9pt;
+    color: #999;
+}
+.yao-lines {
+    margin: 12px 0;
+}
+.yao-line {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0;
+    font-size: 10pt;
+}
+.yao-bar {
+    width: 40px;
+    height: 3px;
+    background: #c9a96e;
+    border-radius: 2px;
+}
+.yao-bar.yin {
+    background: transparent;
+    border-top: 3px solid #999;
+    border-bottom: 3px solid #999;
+    height: 8px;
+}
+.yao-label {
+    font-size: 9pt;
+    color: #999;
+    min-width: 36px;
+}
+.yao-text {
+    flex: 1;
+    color: #555;
+}
+@media print {
+    body { padding: 0; }
+    .no-print { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="header">
+    <h1>易因分析报告</h1>
+    <div class="subtitle">以易经六十四卦理解世界规律，以佛教十二因缘洞察人性驱动</div>
+    <div class="meta">分析时间：${new Date().toLocaleString('zh-CN')} · 场景：${scenario.slice(0, 80)}${scenario.length > 80 ? '...' : ''}</div>
+</div>
+
+<div class="section">
+    <div class="gua-header">
+        <div class="gua-symbol">${gua.symbol}</div>
+        <div class="gua-info">
+            <h2>${gua.fullname}</h2>
+            <div class="phase">${gua.nature} · ${gua.phase}</div>
+            <div style="margin-top:8px">
+                ${gua.keywords.map(k => `<span class="tag">${k}</span>`).join('')}
+            </div>
+        </div>
+    </div>
+    <div class="content-block">
+        <h4>卦象释义</h4>
+        <p>${gua.meaning}</p>
+    </div>
+    <div class="content-block">
+        <h4>当前位置</h4>
+        <p>${gua.position}</p>
+    </div>
+    <div class="content-block">
+        <h4>危险警示</h4>
+        <p style="color:#c94f4f">${gua.danger}</p>
+    </div>
+    <div class="content-block">
+        <h4>转化方向</h4>
+        <p style="color:#5a9a6e">${gua.transform}</p>
+    </div>
+    ${movingYao ? `
+    <div class="content-block">
+        <h4>动爻与变卦</h4>
+        <p>第${movingYao}爻动，变卦为${changedGua ? changedGua.fullname : '未知'}。事物将向「${changedGua ? changedGua.phase : '未知'}」方向演化。</p>
+    </div>
+    ` : ''}
+</div>
+
+<div class="section">
+    <div class="section-title"><span class="symbol">☸</span> 十二因缘分析</div>
+    <div class="chain">
+        ${pratitya.chain.map((node, i) => `
+            <span class="chain-node ${node.isPrimary ? 'active' : ''}">${node.data.name}</span>
+            ${i < pratitya.chain.length - 1 ? '<span class="chain-arrow">→</span>' : ''}
+        `).join('')}
+    </div>
+    <div style="margin-bottom:12px">
+        <span class="tag">主要卡点：${pratitya.primary.name}</span>
+        ${pratitya.secondary ? `<span class="tag">次要卡点：${pratitya.secondary.name}</span>` : ''}
+    </div>
+    <div class="content-block">
+        <h4>主要卡点 · ${pratitya.primary.name}</h4>
+        <p><strong>含义：</strong>${pratitya.primary.meaning}</p>
+        <p><strong>表现：</strong>${pratitya.primary.manifestation}</p>
+        <p><strong>在决策中：</strong>${pratitya.primary.inDecision}</p>
+        <p><strong style="color:#5a9a6e">突破点：</strong>${pratitya.primary.breakPoint}</p>
+    </div>
+    ${pratitya.secondary ? `
+    <div class="content-block">
+        <h4>次要卡点 · ${pratitya.secondary.name}</h4>
+        <p><strong>含义：</strong>${pratitya.secondary.meaning}</p>
+        <p><strong style="color:#5a9a6e">突破点：</strong>${pratitya.secondary.breakPoint}</p>
+    </div>
+    ` : ''}
+</div>
+
+<div class="section">
+    <div class="section-title"><span class="symbol">◈</span> 交叉分析</div>
+    <div class="content-block">
+        <p>${cross}</p>
+    </div>
+</div>
+
+<div class="section">
+    <div class="section-title"><span class="symbol">◉</span> 干预建议</div>
+    ${actions.map((action, i) => `
+        <div class="action-item">
+            <div class="action-num">${i + 1}</div>
+            <div class="action-content">
+                <h5>${action.title}</h5>
+                <p>${action.desc}</p>
+            </div>
+        </div>
+    `).join('')}
+</div>
+
+<div class="footer">
+    <p>由 易因 · 世界分析引擎 生成 · yiyin.app</p>
+    <p class="no-print" style="margin-top:8px;color:#c9a96e">请使用浏览器「打印 → 另存为 PDF」功能保存此报告</p>
+</div>
+<script>
+    window.onload = function() {
+        setTimeout(function() { window.print(); }, 500);
+    };
+</script>
+</body>
+</html>`;
+
+    printWindow.document.write(html);
+    printWindow.document.close();
+    showToast('PDF 打印窗口已打开');
+}
+
 function shareResult() {
     if (!state.currentResult) {
         showToast('请先进行分析');
         return;
     }
-    const { gua, pratitya, cross } = state.currentResult;
-    const text = `【易因分析】\n卦象：${gua.fullname}\n卡点：${pratitya.primary.name}\n\n${cross}`;
-    navigator.clipboard.writeText(text).then(() => {
-        showToast('已复制到剪贴板');
-    });
+
+    // Generate shareable URL with encoded result
+    try {
+        const shareData = {
+            s: state.currentResult.scenario.slice(0, 200),
+            g: state.currentResult.gua.name,
+            p: state.currentResult.pratitya.primary.key,
+            t: Date.now()
+        };
+        const encoded = btoa(encodeURIComponent(JSON.stringify(shareData)));
+        const shareUrl = `${window.location.origin}${window.location.pathname}#share=${encoded}`;
+
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            showToast('分享链接已复制到剪贴板');
+        }).catch(() => {
+            // Fallback
+            const text = `【易因分析】\n卦象：${state.currentResult.gua.fullname}\n卡点：${state.currentResult.pratitya.primary.name}\n\n${state.currentResult.cross}`;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('分析摘要已复制（链接生成失败）');
+            });
+        });
+    } catch (e) {
+        const text = `【易因分析】\n卦象：${state.currentResult.gua.fullname}\n卡点：${state.currentResult.pratitya.primary.name}\n\n${state.currentResult.cross}`;
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('分析摘要已复制到剪贴板');
+        });
+    }
+}
+
+// ════════════════════════════════════════
+// SETTINGS MODAL
+// ════════════════════════════════════════
+function openSettings() {
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay active';
+    overlay.id = 'settingsOverlay';
+    overlay.innerHTML = `
+        <div class="modal-panel" style="width:420px" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-title">设置</div>
+                <button class="modal-close" onclick="closeSettings()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <div class="settings-title">通用</div>
+                    <label class="settings-item">
+                        <span class="settings-label">自动保存草稿</span>
+                        <input type="checkbox" class="settings-toggle" ${state.settings.autoSave ? 'checked' : ''} onchange="toggleSetting('autoSave', this.checked)">
+                    </label>
+                    <label class="settings-item">
+                        <span class="settings-label">动画效果</span>
+                        <input type="checkbox" class="settings-toggle" ${state.settings.animations ? 'checked' : ''} onchange="toggleSetting('animations', this.checked)">
+                    </label>
+                    <label class="settings-item">
+                        <span class="settings-label">紧凑模式</span>
+                        <input type="checkbox" class="settings-toggle" ${state.settings.compactMode ? 'checked' : ''} onchange="toggleSetting('compactMode', this.checked)">
+                    </label>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-title">数据</div>
+                    <button class="header-btn" style="width:100%;margin-bottom:8px" onclick="exportAllData()">导出所有数据 (JSON)</button>
+                    <button class="header-btn" style="width:100%;color:var(--danger)" onclick="clearAllData()">清除所有数据</button>
+                </div>
+                <div class="settings-section">
+                    <div class="settings-title">关于</div>
+                    <div class="settings-about">
+                        <div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:4px">易因 · 世界分析引擎</div>
+                        <div style="font-size:12px;color:var(--text-tertiary)">版本 v4.0 · 易经64卦 + 佛教十二因缘</div>
+                        <div style="font-size:12px;color:var(--text-tertiary);margin-top:4px">本地运行，数据存储于浏览器 IndexedDB</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+}
+
+function closeSettings() {
+    const overlay = document.getElementById('settingsOverlay');
+    if (overlay) overlay.remove();
+}
+
+function toggleSetting(key, value) {
+    state.settings[key] = value;
+    saveSettings();
+    applySettings();
+    showToast('设置已保存');
+}
+
+async function exportAllData() {
+    const history = await dbGetAll('history');
+    const settings = await dbGetAll('settings');
+    const data = { history, settings, exportedAt: new Date().toISOString(), version: '4.0' };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `yiyin-backup-${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('数据备份已导出');
+}
+
+async function clearAllData() {
+    if (!confirm('确定要清除所有数据吗？此操作不可恢复。')) return;
+    await dbClear('history');
+    await dbClear('settings');
+    state.history = [];
+    state.compareList = [];
+    localStorage.removeItem('yiyin_compare');
+    updateHistoryUI();
+    updateFavoritesUI();
+    updateCompareBadge();
+    showToast('所有数据已清除');
+    closeSettings();
+}
+
+// ════════════════════════════════════════
+// URL SHARE HANDLING
+// ════════════════════════════════════════
+function handleShareUrl() {
+    const hash = window.location.hash;
+    if (hash.startsWith('#share=')) {
+        try {
+            const encoded = hash.slice(7);
+            const shareData = JSON.parse(decodeURIComponent(atob(encoded)));
+            if (shareData.s) {
+                document.getElementById('scenario').value = shareData.s;
+                updateCharCount();
+                if (shareData.g && guaData[shareData.g]) {
+                    const gua = guaData[shareData.g];
+                    const pratityaKey = shareData.p || 'avidya';
+                    const pratitya = {
+                        primary: { ...pratityaData[pratityaKey], key: pratityaKey },
+                        secondary: null,
+                        chain: Object.keys(pratityaData).map(key => ({
+                            key, data: pratityaData[key],
+                            isPrimary: key === pratityaKey,
+                            isSecondary: false
+                        }))
+                    };
+                    const result = {
+                        gua,
+                        pratitya,
+                        cross: `${gua.fullname}的${gua.phase}状态与「${pratitya.primary.name}」的卡点形成共振。`,
+                        actions: generateActions(gua, pratitya, null),
+                        scenario: shareData.s,
+                        timestamp: shareData.t || Date.now()
+                    };
+                    state.currentResult = result;
+                    renderResult(result);
+                    showToast('已加载分享的分析');
+                }
+                // Clear the hash
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+        } catch (e) {
+            console.error('Failed to parse share URL:', e);
+        }
+    }
 }
 
 // ════════════════════════════════════════
@@ -1114,25 +1844,21 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 function showToast(msg, type = 'info') {
+    if (window.YIYIN_ANIMATIONS) {
+        window.YIYIN_ANIMATIONS.enqueueToast(msg, type);
+        return;
+    }
+    // Fallback
     const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
     toast.className = 'toast';
-
-    const icons = {
-        info: 'ℹ️',
-        success: '✅',
-        warning: '⚠️',
-        error: '❌'
-    };
-
+    const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '❌' };
     toast.innerHTML = `
         <span class="toast-icon">${icons[type] || icons.info}</span>
         <span>${msg}</span>
         <div class="toast-progress"></div>
     `;
-
     container.appendChild(toast);
-
     setTimeout(() => {
         toast.classList.add('removing');
         setTimeout(() => toast.remove(), 300);
@@ -1419,9 +2145,13 @@ function analyze() {
         return;
     }
 
-    const btn = document.getElementById('analyzeBtn');
-    btn.disabled = true;
-    btn.innerHTML = '<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div> 分析中...';
+    if (window.YIYIN_ANIMATIONS) {
+        window.YIYIN_ANIMATIONS.setAnalyzeButtonLoading(true);
+    } else {
+        const btn = document.getElementById('analyzeBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div> 分析中...';
+    }
 
     setTimeout(() => {
         const gua = matchGua(scenario, state.selectedType);
@@ -1436,8 +2166,14 @@ function analyze() {
         saveToHistory(result);
         renderResult(result);
 
-        btn.disabled = false;
-        btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> 开始分析';
+        if (window.YIYIN_ANIMATIONS) {
+            window.YIYIN_ANIMATIONS.setAnalyzeButtonLoading(false);
+            setTimeout(() => window.YIYIN_ANIMATIONS.animateResultCards(), 50);
+        } else {
+            const btn = document.getElementById('analyzeBtn');
+            btn.disabled = false;
+            btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> 开始分析';
+        }
     }, 800);
 }
 
@@ -1447,7 +2183,7 @@ function renderResult(result) {
 
     if (state.selectedDim === 'all' || state.selectedDim === 'yijing') {
         html += `
-        <div class="result-card">
+        <div class="result-card" data-scroll-animation="fadeIn">
             <div class="result-header">
                 <div class="gua-symbol">${gua.symbol}</div>
                 <div class="gua-info">
@@ -1509,7 +2245,7 @@ function renderResult(result) {
 
     if (state.selectedDim === 'all' || state.selectedDim === 'buddhism') {
         html += `
-        <div class="result-card">
+        <div class="result-card" data-scroll-animation="fadeIn">
             <div class="result-header">
                 <div class="gua-symbol">☸</div>
                 <div class="gua-info">
@@ -1550,7 +2286,7 @@ function renderResult(result) {
 
     if (state.selectedDim === 'all') {
         html += `
-        <div class="result-card cross-analysis">
+        <div class="result-card cross-analysis" data-scroll-animation="fadeIn">
             <div class="result-header">
                 <div class="gua-symbol">◈</div>
                 <div class="gua-info">
@@ -1565,7 +2301,7 @@ function renderResult(result) {
                 <p>${cross}</p>
             </div>
         </div>
-        <div class="result-card">
+        <div class="result-card" data-scroll-animation="fadeIn">
             <div class="result-header">
                 <div class="gua-symbol">◉</div>
                 <div class="gua-info">
@@ -1591,12 +2327,23 @@ function renderResult(result) {
 
     document.getElementById('results').innerHTML = html;
     document.getElementById('results').classList.add('active');
-    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+    // Initialize scroll animations for new result cards
+    setTimeout(() => {
+        if (window.YIYIN_ANIMATIONS) {
+            window.YIYIN_ANIMATIONS.initScrollAnimations();
+        }
+        document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
 }
 
 // ════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════
+loadSettings().then(() => {
+    loadDraft();
+    handleShareUrl();
+});
 loadHistoryFromDB().then(() => {
     updateHistoryUI();
     updateFavoritesUI();
