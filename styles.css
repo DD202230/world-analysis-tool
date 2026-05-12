@@ -1216,17 +1216,18 @@ body {
     border-radius: var(--radius-full);
     transition: all var(--transition-base);
     position: relative;
+    flex-shrink: 0;
 }
 
 .yao-bar.yang {
-    width: 100%;
+    width: 40px;
     background: linear-gradient(90deg, var(--yang), var(--yang-dim));
 }
 
 .yao-bar.yin {
-    width: 100%;
+    width: 40px;
     display: flex;
-    gap: var(--space-2);
+    gap: 4px;
 }
 
 .yao-bar.yin::before,
@@ -1245,6 +1246,7 @@ body {
     color: var(--text-tertiary);
     min-width: 48px;
     font-family: var(--font-mono);
+    flex-shrink: 0;
 }
 
 .yao-text {
@@ -2506,6 +2508,58 @@ html {
 }
 
 /* ════════════════════════════════════════
+   SHORTCUTS HELP PANEL
+   ════════════════════════════════════════ */
+.shortcuts-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-5);
+}
+
+.shortcut-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+}
+
+.shortcut-group-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent-300);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: var(--space-1);
+}
+
+.shortcut-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) 0;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.shortcut-item kbd {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 3px 8px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    color: var(--text-tertiary);
+    box-shadow: 0 1px 0 var(--border-strong);
+}
+
+@media (max-width: 768px) {
+    .shortcuts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ════════════════════════════════════════
    FLOATING ACTION BUTTON
    ════════════════════════════════════════ */
 .fab {
@@ -2706,16 +2760,14 @@ html {
 }
 
 /* ════════════════════════════════════════
-   COLLAPSIBLE RESULT CARDS
+   ENHANCED RESULT CARD COLLAPSE
    ════════════════════════════════════════ */
-.result-card {
-    position: relative;
-}
-
 .result-card.collapsible .result-header {
     cursor: pointer;
     user-select: none;
     transition: background var(--transition-fast);
+    position: relative;
+    padding-right: 40px;
 }
 
 .result-card.collapsible .result-header:hover {
@@ -2724,25 +2776,27 @@ html {
 
 .result-card.collapsible .result-header::after {
     content: '';
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
     width: 20px;
     height: 20px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='rgba(240,240,245,0.3)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-size: contain;
     background-repeat: no-repeat;
-    margin-left: auto;
-    flex-shrink: 0;
     transition: transform var(--transition-fast);
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
 .result-card.collapsible.collapsed .result-header::after {
-    transform: rotate(-90deg);
+    transform: translateY(-50%) rotate(-90deg);
 }
 
 .result-card.collapsible .result-body {
     overflow: hidden;
-    transition: max-height var(--transition-slow), opacity var(--transition-base), padding var(--transition-base);
-    max-height: 2000px;
+    transition: max-height 400ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease, padding 300ms ease;
+    max-height: 3000px;
     opacity: 1;
 }
 
@@ -2756,6 +2810,28 @@ html {
 .result-card.collapsible .result-header .gua-info {
     flex: 1;
     min-width: 0;
+}
+
+/* Card type indicator */
+.result-card::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 16px;
+    bottom: 16px;
+    width: 3px;
+    background: linear-gradient(180deg, var(--accent-400), var(--accent-600));
+    border-radius: 0 3px 3px 0;
+    opacity: 0;
+    transition: opacity 300ms ease;
+}
+
+.result-card:hover::after {
+    opacity: 1;
+}
+
+.result-card.cross-analysis::after {
+    background: linear-gradient(180deg, var(--success), var(--info));
 }
 
 /* ════════════════════════════════════════
@@ -2892,3 +2968,72 @@ textarea:focus-visible {
 .pratitya-node-num.node-bhava { background: rgba(200,140,160,0.2); color: #e8a0b4; }
 .pratitya-node-num.node-jati { background: rgba(180,160,140,0.2); color: #d4c4a0; }
 .pratitya-node-num.node-jaramarana { background: rgba(140,140,140,0.2); color: #c0c0c0; }
+/* ════════════════════════════════════════
+   LLM ANALYSIS CARD
+   ════════════════════════════════════════ */
+.llm-card {
+    border: 1px solid var(--border-accent);
+    background: linear-gradient(135deg, rgba(201,169,110,0.03), rgba(201,169,110,0.01));
+}
+
+.llm-card .result-header {
+    background: linear-gradient(90deg, rgba(201,169,110,0.06), transparent);
+}
+
+.llm-streaming-content {
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.llm-streaming-content h2 {
+    color: var(--accent-300);
+    font-size: 16px;
+    font-weight: 600;
+    margin: 20px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.llm-streaming-content h3 {
+    color: var(--accent-400);
+    font-size: 14px;
+    font-weight: 600;
+    margin: 16px 0 8px;
+}
+
+.llm-streaming-content strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.llm-streaming-content li {
+    margin: 6px 0;
+    padding-left: 4px;
+}
+
+.llm-loading {
+    display: flex;
+    align-items: center;
+    padding: 20px 16px;
+}
+
+.llm-loading-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-400);
+    border-radius: 50%;
+    margin: 0 3px;
+    animation: llmPulse 1.4s ease-in-out infinite;
+}
+
+.llm-loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.llm-loading-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes llmPulse {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+    40% { transform: scale(1); opacity: 1; }
+}

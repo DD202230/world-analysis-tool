@@ -419,25 +419,57 @@ function updateCmdSelection(items) {
   });
 }
 
-// Override renderCommands to reset selection
-const originalRenderCommands = window.renderCommands;
-window.renderCommands = function(cmds) {
-  cmdSelectedIndex = 0;
-  if (typeof originalRenderCommands === 'function') {
-    originalRenderCommands(cmds);
-  }
-  // Re-attach click handlers for keyboard nav
-  setTimeout(() => {
-    const items = document.querySelectorAll('.cmd-item');
-    items.forEach((item, i) => {
-      item.addEventListener('mouseenter', () => {
-        cmdSelectedIndex = i;
-        updateCmdSelection(items);
-      });
-    });
-    updateCmdSelection(items);
-  }, 0);
-};
+// ════════════════════════════════════════
+// HELP / SHORTCUTS PANEL
+// ════════════════════════════════════════
+function openShortcutsHelp() {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay active';
+  overlay.id = 'shortcutsOverlay';
+  overlay.innerHTML = `
+    <div class="modal-panel" style="width:520px" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">键盘快捷键</div>
+        <button class="modal-close" onclick="document.getElementById('shortcutsOverlay').remove()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="shortcuts-grid">
+          <div class="shortcut-group">
+            <div class="shortcut-group-title">导航</div>
+            <div class="shortcut-item"><kbd>⌘ K</kbd><span>命令面板</span></div>
+            <div class="shortcut-item"><kbd>⌘ N</kbd><span>新建分析</span></div>
+            <div class="shortcut-item"><kbd>⌘ H</kbd><span>历史记录</span></div>
+            <div class="shortcut-item"><kbd>⌘ ⇧ F</kbd><span>收藏</span></div>
+            <div class="shortcut-item"><kbd>⌘ ⇧ C</kbd><span>对比模式</span></div>
+          </div>
+          <div class="shortcut-group">
+            <div class="shortcut-group-title">操作</div>
+            <div class="shortcut-item"><kbd>⌘ E</kbd><span>导出 Markdown</span></div>
+            <div class="shortcut-item"><kbd>⌘ ⇧ P</kbd><span>导出 PDF</span></div>
+            <div class="shortcut-item"><kbd>⌘ ⇧ I</kbd><span>导出图片</span></div>
+            <div class="shortcut-item"><kbd>⌘ ⇧ S</kbd><span>分享链接</span></div>
+            <div class="shortcut-item"><kbd>⌘ ⇧ X</kbd><span>清空输入</span></div>
+          </div>
+          <div class="shortcut-group">
+            <div class="shortcut-group-title">其他</div>
+            <div class="shortcut-item"><kbd>⌘ T</kbd><span>时间起卦</span></div>
+            <div class="shortcut-item"><kbd>⌘ ,</kbd><span>设置</span></div>
+            <div class="shortcut-item"><kbd>⌘ 1</kbd><span>六十四卦</span></div>
+            <div class="shortcut-item"><kbd>⌘ 2</kbd><span>十二因缘</span></div>
+            <div class="shortcut-item"><kbd>?</kbd><span>显示此帮助</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', () => overlay.remove());
+  document.body.appendChild(overlay);
+}
 
 // ════════════════════════════════════════
 // HERO ENTRANCE ANIMATION
