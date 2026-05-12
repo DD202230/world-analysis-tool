@@ -3101,3 +3101,49 @@ textarea:focus-visible {
         min-width: 36px;
     }
 }
+
+
+/* ════════════════════════════════════════
+   MARXIST ANALYSIS CARDS v4.2
+   ════════════════════════════════════════ */
+
+.praxis-card .result-header {
+    background: linear-gradient(135deg, rgba(192,57,43,0.08), rgba(142,68,173,0.08));
+}
+
+.praxis-card .chain-node.active {
+    background: linear-gradient(135deg, #c0392b, #8e44ad);
+    box-shadow: 0 0 12px rgba(192,57,43,0.3);
+}
+
+.contradiction-card .result-header {
+    background: linear-gradient(135deg, rgba(231,76,60,0.08), rgba(192,57,43,0.08));
+}
+
+.contradiction-card .chain-node.active {
+    background: linear-gradient(135deg, #e74c3c, #c0392b);
+    box-shadow: 0 0 12px rgba(231,76,60,0.3);
+}
+
+/* Marxism dimension tag */
+.tag-marxism {
+    background: linear-gradient(135deg, rgba(192,57,43,0.15), rgba(142,68,173,0.15));
+    color: #c0392b;
+    border: 1px solid rgba(192,57,43,0.2);
+}
+
+/* Dialectic highlight box */
+.dialectic-box {
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    border-left: 3px solid var(--danger);
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.dialectic-box strong {
+    color: var(--danger);
+}
