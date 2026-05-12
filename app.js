@@ -3485,4 +3485,103 @@ function renderContradictionView(container) {
     container.innerHTML = html;
 }
 
+function renderPhenomenologyView(container) {
+    if (!container) container = document.getElementById('phenomenologyView');
+    if (!container) return;
+    let html = `
+    <div class="knowledge-section">
+        <div class="knowledge-header">
+            <div class="knowledge-icon" style="background:linear-gradient(135deg,#00bcd4,#3f51b5)">现</div>
+            <div class="knowledge-title">
+                <h2>现象学 · 回到事物本身</h2>
+                <p>悬置预设，直面经验原貌，在意识活动中揭示意义构造</p>
+            </div>
+        </div>
+        <div class="knowledge-content">
+            <div class="chain-display" style="margin-bottom:24px;flex-wrap:wrap">
+                ${Object.values(phenomenologyData).map((dim, i) => `
+                    <div class="chain-node ${dim.color}">${dim.name}</div>
+                    ${i < Object.values(phenomenologyData).length - 1 ? '<span class="chain-arrow">→</span>' : ''}
+                `).join('')}
+            </div>
+            <div class="knowledge-grid">
+                ${Object.entries(phenomenologyData).map(([key, dim]) => `
+                    <div class="knowledge-card ${dim.color}">
+                        <div class="knowledge-card-header">
+                            <span class="knowledge-card-num">${dim.order}</span>
+                            <h4>${dim.name}</h4>
+                        </div>
+                        <div class="knowledge-card-body">
+                            <p><strong>含义：</strong>${dim.meaning}</p>
+                            <p><strong>表现：</strong>${dim.manifestation}</p>
+                            <p><strong>决策应用：</strong>${dim.inDecision}</p>
+                            <p style="color:var(--success)"><strong>突破点：</strong>${dim.breakPoint}</p>
+                            <div style="margin-top:12px;padding:10px;background:var(--bg-tertiary);border-radius:6px">
+                                <strong style="font-size:12px;color:var(--text-tertiary)">反思问题：</strong>
+                                <ul style="margin:6px 0 0 16px;padding:0;font-size:13px">
+                                    ${dim.questions.map(q => `<li style="margin-bottom:4px">${q}</li>`).join('')}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+    </div>`;
+    container.innerHTML = html;
+}
+
+function renderStoicView(container) {
+    if (!container) container = document.getElementById('stoicView');
+    if (!container) return;
+    let html = `
+    <div class="knowledge-section">
+        <div class="knowledge-header">
+            <div class="knowledge-icon" style="background:linear-gradient(135deg,#27ae60,#2ecc71)">斯</div>
+            <div class="knowledge-title">
+                <h2>斯多葛学派 · 可控之事</h2>
+                <p>区分可控与不可控，在限制中寻找自由，以终为始地行动</p>
+            </div>
+        </div>
+        <div class="knowledge-content">
+            <div class="knowledge-grid">
+                ${Object.entries(stoicData).map(([key, practice]) => `
+                    <div class="knowledge-card ${practice.color}">
+                        <div class="knowledge-card-header">
+                            <span class="knowledge-card-num">${practice.order}</span>
+                            <h4>${practice.name}</h4>
+                        </div>
+                        <div class="knowledge-card-body">
+                            <p><strong>含义：</strong>${practice.meaning}</p>
+                            <p><strong>表现：</strong>${practice.manifestation}</p>
+                            <p><strong>决策应用：</strong>${practice.inDecision}</p>
+                            <p style="color:var(--success)"><strong>突破点：</strong>${practice.breakPoint}</p>
+                            <div style="margin-top:12px;padding:10px;background:var(--bg-tertiary);border-radius:6px;border-left:3px solid var(--success)">
+                                <strong style="color:var(--success)">日常练习：</strong>${practice.practice}
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <div style="margin-top:32px;padding:20px;background:var(--bg-secondary);border-radius:12px;border:1px solid var(--border-color)">
+                <h4 style="margin-bottom:16px;color:var(--text-primary)">场景矩阵</h4>
+                <div class="knowledge-grid" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+                    ${Object.entries(stoicMatrix).map(([type, matrix]) => `
+                        <div class="knowledge-card">
+                            <div class="knowledge-card-header">
+                                <h4>${type === 'personal' ? '个人成长' : type === 'relationship' ? '人际关系' : type === 'business' ? '商业决策' : type === 'social' ? '社会现象' : type === 'creative' ? '创作瓶颈' : '政治博弈'}</h4>
+                            </div>
+                            <div class="knowledge-card-body">
+                                <p><strong>核心原则：</strong>${stoicData[matrix.primary]?.name || matrix.primary}</p>
+                                <p><strong>辅助原则：</strong>${stoicData[matrix.secondary]?.name || matrix.secondary}</p>
+                                <p style="font-size:13px;color:var(--text-secondary)">${matrix.desc}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    </div>`;
+    container.innerHTML = html;
+}
 
