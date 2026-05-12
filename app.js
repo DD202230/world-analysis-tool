@@ -161,14 +161,33 @@ const LLM_CONFIG = {
 };
 
 function buildSystemPrompt(gua, pratitya, scenario, movingYao, changedGua) {
+    const phenomenology = state.currentResult?.phenomenology;
     const praxis = state.currentResult?.praxis;
     const contradiction = state.currentResult?.contradiction;
+    const stoic = state.currentResult?.stoic;
     
-    let prompt = `你是一位精通东方哲学与马克思主义辩证法的深度分析师。请基于以下四层分析框架，为用户提供深度解读：\n\n`;
+    let prompt = `你是一位融合东西方哲学传统的深度分析师。请基于以下三类哲学分工框架，为用户提供深度解读：\n\n`;
+    prompt += `【框架说明】\n`;
+    prompt += `- 分析层（现象学）：分析当前情境「是什么」——剥离预设，回到事物本身\n`;
+    prompt += `- 推演层（易经+十二因缘）：推演变化规律——时空定位与人性驱动\n`;
+    prompt += `- 指导层（马克思主义+斯多葛）：指导如何行动——实践方法论与可控行动\n\n`;
     
     prompt += `## 用户情境\n${scenario}\n\n`;
     
-    prompt += `## 第一层：易经卦象（时空定位）\n`;
+    if (phenomenology) {
+        prompt += `## 分析层：现象学 — 当前情境是什么\n`;
+        prompt += `- 主要维度：${phenomenology.primary.name}\n`;
+        prompt += `  - 含义：${phenomenology.primary.meaning}\n`;
+        prompt += `  - 表现：${phenomenology.primary.manifestation}\n`;
+        prompt += `  - 突破点：${phenomenology.primary.breakPoint}\n`;
+        if (phenomenology.secondary) {
+            prompt += `- 次要维度：${phenomenology.secondary.name}\n`;
+            prompt += `  - 突破点：${phenomenology.secondary.breakPoint}\n`;
+        }
+        prompt += `\n`;
+    }
+    
+    prompt += `## 推演层：易经卦象（时空定位）\n`;
     prompt += `- 卦象：${gua.fullname}（${gua.symbol}）\n`;
     prompt += `- 卦义：${gua.meaning}\n`;
     prompt += `- 当前位置：${gua.position}\n`;
@@ -194,7 +213,7 @@ function buildSystemPrompt(gua, pratitya, scenario, movingYao, changedGua) {
     prompt += `\n`;
     
     if (praxis) {
-        prompt += `## 第三层：马克思主义实践论（认识方法论）\n`;
+        prompt += `## 指导层：马克思主义实践论（认识方法论）\n`;
         prompt += `- 当前阶段：${praxis.primary.name}\n`;
         prompt += `  - 含义：${praxis.primary.meaning}\n`;
         prompt += `  - 表现：${praxis.primary.manifestation}\n`;
@@ -207,7 +226,7 @@ function buildSystemPrompt(gua, pratitya, scenario, movingYao, changedGua) {
     }
     
     if (contradiction) {
-        prompt += `## 第四层：马克思主义矛盾论（结构动力学）\n`;
+        prompt += `## 指导层：马克思主义矛盾论（结构动力学）\n`;
         prompt += `- 主要矛盾：${contradiction.primary.name}\n`;
         prompt += `  - 含义：${contradiction.primary.meaning}\n`;
         prompt += `  - 表现：${contradiction.primary.manifestation}\n`;
@@ -220,13 +239,27 @@ function buildSystemPrompt(gua, pratitya, scenario, movingYao, changedGua) {
         prompt += `\n`;
     }
     
+    if (stoic) {
+        prompt += `## 指导层：斯多葛学派 — 如何行动\n`;
+        prompt += `- 核心原则：${stoic.primary.name}\n`;
+        prompt += `  - 含义：${stoic.primary.meaning}\n`;
+        prompt += `  - 表现：${stoic.primary.manifestation}\n`;
+        prompt += `  - 突破点：${stoic.primary.breakPoint}\n`;
+        prompt += `  - 日常练习：${stoic.primary.practice}\n`;
+        if (stoic.secondary) {
+            prompt += `- 辅助原则：${stoic.secondary.name}\n`;
+            prompt += `  - 突破点：${stoic.secondary.breakPoint}\n`;
+        }
+        prompt += `\n`;
+    }
+    
     prompt += `## 分析要求\n`;
     prompt += `请用中文撰写深度解读，要求：\n`;
-    prompt += `1. **规律层面**：从易经角度分析当前系统的能量状态和时空位置\n`;
-    prompt += `2. **人性层面**：从十二因缘角度揭示核心驱动机制和卡点\n`;
-    prompt += `3. **认识层面**：从实践论角度分析当前认识阶段和突破路径\n`;
-    prompt += `4. **结构层面**：从矛盾论角度揭示主要矛盾和转化条件\n`;
-    prompt += `5. **行动层面**：给出3-5条具体可操作的干预建议\n`;
+    prompt += `1. **分析层**：从现象学角度，帮助用户剥离预设、回到事物本身\n`;
+    prompt += `2. **推演层**：从易经+十二因缘角度，推演系统的能量状态和变化趋势\n`;
+    prompt += `3. **指导层**：从马克思主义+斯多葛角度，给出具体可操作的行动建议\n`;
+    prompt += `4. **整合**：将三类哲学视角整合为一个有机的整体解读\n`;
+    prompt += `5. **行动**：给出3-5条具体可操作的干预建议\n`;
     prompt += `6. 用Markdown格式输出，层次分明\n`;
     prompt += `7. 语言要有洞察力，避免泛泛而谈\n`;
     
@@ -2453,6 +2486,61 @@ function matchContradiction(scenario, type) {
     };
 }
 
+
+function matchPhenomenology(scenario, type) {
+    const text = scenario.toLowerCase();
+    let scores = {};
+    for (let key in phenomenologyData) scores[key] = 0;
+    for (let dim in phenomenologyPatterns) {
+        phenomenologyPatterns[dim].forEach(kw => { if (text.includes(kw)) scores[dim] += 1; });
+    }
+    const typeBoost = {
+        personal: ['epoché', 'noesis', 'lifeworld'],
+        relationship: ['noesis', 'noema', 'intersubjectivity'],
+        business: ['epoché', 'lifeworld', 'intersubjectivity'],
+        social: ['lifeworld', 'intersubjectivity', 'noema'],
+        creative: ['noesis', 'noema', 'epoché'],
+        political: ['lifeworld', 'intersubjectivity', 'epoché']
+    };
+    if (type && typeBoost[type]) {
+        typeBoost[type].forEach(k => { if (scores[k] !== undefined) scores[k] += 0.5; });
+    }
+    let sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+    let primary = sorted[0][0];
+    let secondary = sorted[1] && sorted[1][1] > 0 ? sorted[1][0] : null;
+    return {
+        primary: { ...phenomenologyData[primary], key: primary },
+        secondary: secondary ? { ...phenomenologyData[secondary], key: secondary } : null,
+        chain: Object.keys(phenomenologyData).map(key => ({
+            key, data: phenomenologyData[key],
+            isPrimary: key === primary,
+            isSecondary: key === secondary
+        }))
+    };
+}
+
+function matchStoic(scenario, type) {
+    const text = scenario.toLowerCase();
+    let scores = {};
+    for (let key in stoicData) scores[key] = 0;
+    for (let practice in stoicPatterns) {
+        stoicPatterns[practice].forEach(kw => { if (text.includes(kw)) scores[practice] += 1; });
+    }
+    if (type && stoicMatrix[type]) {
+        const matrix = stoicMatrix[type];
+        if (scores[matrix.primary] !== undefined) scores[matrix.primary] += 1;
+        if (scores[matrix.secondary] !== undefined) scores[matrix.secondary] += 0.5;
+    }
+    let sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+    let primary = sorted[0][0];
+    let secondary = sorted[1] && sorted[1][1] > 0 ? sorted[1][0] : null;
+    return {
+        primary: { ...stoicData[primary], key: primary },
+        secondary: secondary ? { ...stoicData[secondary], key: secondary } : null,
+        matrix: type && stoicMatrix[type] ? stoicMatrix[type] : null
+    };
+}
+
 function crossAnalysis4D(gua, pratitya, praxis, contradiction) {
     const key = `${gua.name}-${pratitya.primary.key}-${praxis.primary.key}-${contradiction.primary.key}`;
     const templates = [
@@ -2462,6 +2550,29 @@ function crossAnalysis4D(gua, pratitya, praxis, contradiction) {
     ];
     const hash = key.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
     return templates[hash % templates.length];
+}
+
+function generateStoicActions(stoic, config) {
+    const actions = [];
+    actions.push({
+        title: "斯多葛行动原则",
+        desc: config.detailLevel === 'brief'
+            ? `核心原则：${stoic.primary.name}。${stoic.primary.breakPoint}。`
+            : `斯多葛分析显示，${stoic.primary.name}是当前最适用的行动原则。${stoic.primary.meaning}具体表现为：${stoic.primary.manifestation}。突破点：${stoic.primary.breakPoint}。`
+    });
+    if (stoic.secondary && config.detailLevel !== 'brief') {
+        actions.push({
+            title: "辅助原则",
+            desc: `次要原则「${stoic.secondary.name}」也需关注。${stoic.secondary.breakPoint}。`
+        });
+    }
+    if (stoic.matrix && config.detailLevel === 'full') {
+        actions.push({
+            title: "场景指引",
+            desc: stoic.matrix.desc
+        });
+    }
+    return actions;
 }
 
 function generatePraxisActions(praxis, config) {
@@ -2596,20 +2707,39 @@ function analyze() {
         btn.innerHTML = '<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div> 分析中...';
     }
     setTimeout(() => {
+        // ════════════════════════════════════════
+        // 三类哲学分工分析
+        // ════════════════════════════════════════
+        
+        // 分析层：现象学 — 分析当前情境是什么
+        const phenomenology = matchPhenomenology(scenario, state.selectedType);
+        
+        // 推演层：易经 + 十二因缘 — 推演变化规律
         const gua = matchGua(scenario, state.selectedType);
         const pratitya = matchPratitya(scenario, state.selectedType);
-        const praxis = matchPraxis(scenario, state.selectedType);
-        const contradiction = matchContradiction(scenario, state.selectedType);
         const movingYao = determineMovingYao(scenario);
         const changedGua = calculateChangedGua(gua, movingYao);
+        
+        // 指导层：马克思主义 + 斯多葛 — 指导如何行动
+        const praxis = matchPraxis(scenario, state.selectedType);
+        const contradiction = matchContradiction(scenario, state.selectedType);
+        const stoic = matchStoic(scenario, state.selectedType);
+        
+        // 交叉分析（推演层 + 指导层）
         const cross = crossAnalysis4D(gua, pratitya, praxis, contradiction);
+        
+        // 行动建议（综合三层）
         const actions = generateActions(gua, pratitya, changedGua);
         const praxisActions = generatePraxisActions(praxis, analysisDepthConfig[getAnalysisDepth()]);
         const contraActions = generateContradictionActions(contradiction, analysisDepthConfig[getAnalysisDepth()]);
+        const stoicActions = generateStoicActions(stoic, analysisDepthConfig[getAnalysisDepth()]);
+        
         const result = { 
-            gua, pratitya, praxis, contradiction, 
-            cross, actions, praxisActions, contraActions,
-            scenario, timestamp: Date.now(), movingYao, changedGua 
+            phenomenology,  // 分析层
+            gua, pratitya, changedGua,  // 推演层
+            praxis, contradiction, stoic,  // 指导层
+            cross, actions, praxisActions, contraActions, stoicActions,
+            scenario, timestamp: Date.now(), movingYao
         };
         state.currentResult = result;
         saveToHistory(result);
@@ -2632,7 +2762,7 @@ function analyze() {
 
 function copyResultSection(type) {
     if (!state.currentResult) return;
-    const { gua, pratitya, praxis, contradiction, cross, actions } = state.currentResult;
+    const { phenomenology, gua, pratitya, praxis, contradiction, stoic, cross, actions } = state.currentResult;
     let text = '';
     switch(type) {
         case 'gua':
@@ -2651,15 +2781,7 @@ ${gua.meaning}
 突破点：${pratitya.primary.breakPoint}`;
             break;
         case 'praxis':
-            text = `【实践论 · ${praxis.primary.name}】
-含义：${praxis.primary.meaning}
-表现：${praxis.primary.manifestation}
-在决策中：${praxis.primary.inDecision}
-突破点：${praxis.primary.breakPoint}
-
-反思问题：
-${praxis.primary.questions.map((q, i) => `${i+1}. ${q}`).join('
-')}`;
+            text = `【实践论 · ${praxis.primary.name}】\n含义：${praxis.primary.meaning}\n表现：${praxis.primary.manifestation}\n在决策中：${praxis.primary.inDecision}\n突破点：${praxis.primary.breakPoint}\n\n反思问题：\n${praxis.primary.questions.map((q, i) => `${i+1}. ${q}`).join('\n')}`;
             break;
         case 'contradiction':
             text = `【矛盾论 · ${contradiction.primary.name}】
@@ -2673,21 +2795,79 @@ ${praxis.primary.questions.map((q, i) => `${i+1}. ${q}`).join('
             text = `【交叉分析】
 ${cross}`;
             break;
+        case 'phenomenology':
+            text = `【现象学分析 · ${phenomenology.primary.name}】\n含义：${phenomenology.primary.meaning}\n表现：${phenomenology.primary.manifestation}\n在决策中：${phenomenology.primary.inDecision}\n突破点：${phenomenology.primary.breakPoint}\n\n反思问题：\n${phenomenology.primary.questions.map((q, i) => `${i+1}. ${q}`).join('\n')}`;
+            break;
+        case 'stoic':
+            text = `【斯多葛指南 · ${stoic.primary.name}】\n含义：${stoic.primary.meaning}\n表现：${stoic.primary.manifestation}\n在决策中：${stoic.primary.inDecision}\n突破点：${stoic.primary.breakPoint}\n日常练习：${stoic.primary.practice}`;
+            break;
         case 'actions':
-            text = `【干预建议】
-${actions.map((a, i) => `${i+1}. ${a.title}：${a.desc}`).join('
-')}`;
+            text = `【干预建议】\n${actions.map((a, i) => `${i+1}. ${a.title}：${a.desc}`).join('\n')}`;
             break;
     }
     navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板', 'success'));
 }
 
 function renderResult(result, withLlmPlaceholder = false) {
-    const { gua, pratitya, praxis, contradiction, cross, actions, praxisActions, contraActions, movingYao, changedGua } = result;
+    const { phenomenology, gua, pratitya, praxis, contradiction, stoic, cross, actions, praxisActions, contraActions, stoicActions, movingYao, changedGua } = result;
     const depth = getAnalysisDepth();
     const config = analysisDepthConfig[depth];
     let html = '';
 
+    // ════════════════════════════════════════
+    // 分析层：现象学 — 当前情境是什么
+    // ════════════════════════════════════════
+    if (state.selectedDim === 'all' || state.selectedDim === 'phenomenology') {
+        html += `
+        <div class="result-card collapsible phenomenology-card" data-scroll-animation="fadeIn">
+            <div class="result-header" onclick="toggleResultCard(this)">
+                <div class="gua-symbol" style="background:linear-gradient(135deg,#00bcd4,#3f51b5);color:#fff">现</div>
+                <div class="gua-info">
+                    <h3>现象学分析</h3>
+                    <div class="gua-meta"><span class="tag tag-phase">回到事物本身</span></div>
+                </div>
+                <button class="header-btn" style="margin-left:auto;flex-shrink:0" onclick="event.stopPropagation();copyResultSection('phenomenology')" title="复制">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+            </div>
+            <div class="result-body">
+            <div class="chain-display">
+                ${phenomenology.chain.map((node, i) => `
+                    <div class="chain-node ${node.data.color} ${node.isPrimary ? 'active' : ''}" title="${node.data.meaning}">${node.data.name}</div>
+                    ${i < phenomenology.chain.length - 1 ? '<span class="chain-arrow">→</span>' : ''}
+                `).join('')}
+            </div>
+            <div style="margin-bottom:16px;">
+                <span class="tag tag-phase">主要维度：${phenomenology.primary.name}</span>
+                ${phenomenology.secondary ? `<span class="tag tag-yin">次要维度：${phenomenology.secondary.name}</span>` : ''}
+            </div>
+            <div class="content-block">
+                <h4>${phenomenology.primary.name}</h4>
+                <p><strong style="color:var(--text-primary)">含义：</strong>${phenomenology.primary.meaning}</p>
+                <p><strong style="color:var(--text-primary)">表现：</strong>${phenomenology.primary.manifestation}</p>
+                <p><strong style="color:var(--text-primary)">在决策中：</strong>${phenomenology.primary.inDecision}</p>
+                <p><strong style="color:var(--success)">突破点：</strong>${phenomenology.primary.breakPoint}</p>
+            </div>
+            ${phenomenology.secondary && config.detailLevel !== 'brief' ? `
+            <div class="content-block">
+                <h4>${phenomenology.secondary.name}</h4>
+                <p><strong style="color:var(--text-primary)">含义：</strong>${phenomenology.secondary.meaning}</p>
+                <p><strong style="color:var(--success)">突破点：</strong>${phenomenology.secondary.breakPoint}</p>
+            </div>
+            ` : ''}
+            <div class="content-block">
+                <h4>反思问题</h4>
+                <ul style="margin:0;padding-left:20px;color:var(--text-secondary)">
+                    ${phenomenology.primary.questions.map(q => `<li style="margin-bottom:6px">${q}</li>`).join('')}
+                </ul>
+            </div>
+            </div>
+        </div>`;
+    }
+
+    // ════════════════════════════════════════
+    // 推演层：易经 + 十二因缘 — 变化规律
+    // ════════════════════════════════════════
     if (state.selectedDim === 'all' || state.selectedDim === 'yijing') {
         html += `
         <div class="result-card collapsible" data-scroll-animation="fadeIn">
@@ -2871,6 +3051,54 @@ function renderResult(result, withLlmPlaceholder = false) {
             ` : ''}
             ${contradiction.matrix && config.detailLevel === 'full' ? `
             <div class="content-block"><h4>场景矩阵</h4><p>${contradiction.matrix.desc}</p></div>
+            ` : ''}
+            </div>
+        </div>`;
+    }
+
+    // ════════════════════════════════════════
+    // 指导层：斯多葛学派 — 如何行动
+    // ════════════════════════════════════════
+    if (state.selectedDim === 'all' || state.selectedDim === 'stoic') {
+        html += `
+        <div class="result-card collapsible stoic-card" data-scroll-animation="fadeIn">
+            <div class="result-header" onclick="toggleResultCard(this)">
+                <div class="gua-symbol" style="background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff">斯</div>
+                <div class="gua-info">
+                    <h3>斯多葛行动指南</h3>
+                    <div class="gua-meta"><span class="tag tag-phase">可控之事</span></div>
+                </div>
+                <button class="header-btn" style="margin-left:auto;flex-shrink:0" onclick="event.stopPropagation();copyResultSection('stoic')" title="复制">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                </button>
+            </div>
+            <div class="result-body">
+            <div style="margin-bottom:16px;">
+                <span class="tag tag-phase">核心原则：${stoic.primary.name}</span>
+                ${stoic.secondary ? `<span class="tag tag-yin">辅助原则：${stoic.secondary.name}</span>` : ''}
+            </div>
+            <div class="content-block">
+                <h4>${stoic.primary.name}</h4>
+                <p><strong style="color:var(--text-primary)">含义：</strong>${stoic.primary.meaning}</p>
+                <p><strong style="color:var(--text-primary)">表现：</strong>${stoic.primary.manifestation}</p>
+                <p><strong style="color:var(--text-primary)">在决策中：</strong>${stoic.primary.inDecision}</p>
+                <p><strong style="color:var(--success)">突破点：</strong>${stoic.primary.breakPoint}</p>
+                <div style="margin-top:12px;padding:12px;background:var(--bg-tertiary);border-radius:8px;border-left:3px solid var(--success)">
+                    <strong style="color:var(--success)">日常练习：</strong>${stoic.primary.practice}
+                </div>
+            </div>
+            ${stoic.secondary && config.detailLevel !== 'brief' ? `
+            <div class="content-block">
+                <h4>${stoic.secondary.name}</h4>
+                <p><strong style="color:var(--text-primary)">含义：</strong>${stoic.secondary.meaning}</p>
+                <p><strong style="color:var(--success)">突破点：</strong>${stoic.secondary.breakPoint}</p>
+                <div style="margin-top:12px;padding:12px;background:var(--bg-tertiary);border-radius:8px;border-left:3px solid var(--success)">
+                    <strong style="color:var(--success)">日常练习：</strong>${stoic.secondary.practice}
+                </div>
+            </div>
+            ` : ''}
+            ${stoic.matrix && config.detailLevel === 'full' ? `
+            <div class="content-block"><h4>场景指引</h4><p>${stoic.matrix.desc}</p></div>
             ` : ''}
             </div>
         </div>`;
