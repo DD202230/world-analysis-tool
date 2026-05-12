@@ -114,7 +114,7 @@ body {
     font-family: var(--font-sans);
     font-size: 14px;
     line-height: 1.6;
-    min-height: 100vh;
+    min-height: 100vh; height: 100dvh; min-height: 100dvh;
     overflow-x: hidden;
 }
 
@@ -212,7 +212,7 @@ body {
 /* ════════════════════════════════════════
    LAYOUT
    ════════════════════════════════════════ */
-.app { display: flex; min-height: 100vh; }
+.app { display: flex; min-height: 100vh; height: 100dvh; min-height: 100dvh; }
 
 /* Sidebar */
 .sidebar {
@@ -372,7 +372,7 @@ body {
     margin-left: var(--sidebar-width);
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    min-height: 100vh; height: 100dvh; min-height: 100dvh;
 }
 
 /* Header */

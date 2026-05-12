@@ -2013,6 +2013,15 @@ function toggleSetting(key, value) {
     state.settings[key] = value;
     saveSettings();
     applySettings();
+    
+    // Handle LLM config section visibility
+    if (key === 'llmMode') {
+        const llmSection = document.getElementById('llmConfigSection');
+        if (llmSection) {
+            llmSection.style.display = value ? 'block' : 'none';
+        }
+    }
+    
     showToast('设置已保存');
 }
 
@@ -3015,7 +3024,7 @@ function renderResult(result, withLlmPlaceholder = false) {
                         <span class="tag tag-phase">实时生成中</span>
                     </div>
                 </div>
-                <button class="header-btn" style="margin-left:auto;flex-shrink:0" onclick="event.stopPropagation();copyLlmResult()" title="复制" id="llmCopyBtn" style="display:none">
+                <button class="header-btn" id="llmCopyBtn" style="margin-left:auto;flex-shrink:0;display:none" onclick="event.stopPropagation();copyLlmResult()" title="复制">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                 </button>
             </div>
@@ -3046,6 +3055,7 @@ function renderResult(result, withLlmPlaceholder = false) {
 }
 
 function renderLlmAnalysis(result) {
+    try {
     const prompt = buildSystemPrompt(result.gua, result.pratitya, result.scenario, result.movingYao, result.changedGua);
     const llmContent = document.getElementById('llmContent');
     const llmCopyBtn = document.getElementById('llmCopyBtn');
@@ -3093,6 +3103,19 @@ function renderLlmAnalysis(result) {
             }
         }
     );
+    } catch (err) {
+        const llmContent = document.getElementById('llmContent');
+        if (llmContent) {
+            llmContent.innerHTML = `<div style="color:var(--danger);padding:16px">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px">
+                    <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                深度解读出错: ${err.message}
+                <br><br>
+                <button class="header-btn" onclick="renderLlmAnalysis(state.currentResult)">重试</button>
+            </div>`;
+        }
+    }
 }
 
 function copyLlmResult() {
