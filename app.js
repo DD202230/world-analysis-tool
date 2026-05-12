@@ -4,10 +4,17 @@
 const DB_NAME = 'yiyin_db';
 const DB_VERSION = 1;
 
+// Memory fallback for Safari private mode
+let memoryStore = { history: [], settings: {} };
+let idbAvailable = true;
+
 function openDB() {
     return new Promise((resolve, reject) => {
         const req = indexedDB.open(DB_NAME, DB_VERSION);
-        req.onerror = () => reject(req.error);
+        req.onerror = () => {
+            idbAvailable = false;
+            reject(req.error);
+        };
         req.onsuccess = () => resolve(req.result);
         req.onupgradeneeded = (e) => {
             const db = e.target.result;
@@ -23,59 +30,114 @@ function openDB() {
     });
 }
 
+// Memory fallback wrappers
+async function memGetAll(storeName) {
+    return memoryStore[storeName] || [];
+}
+
+async function memPut(storeName, data) {
+    if (storeName === 'history') {
+        const existing = memoryStore.history.findIndex(h => h.id === data.id);
+        if (existing >= 0) memoryStore.history[existing] = data;
+        else memoryStore.history.push(data);
+    } else if (storeName === 'settings') {
+        memoryStore.settings[data.key] = data;
+    }
+}
+
+async function memDelete(storeName, key) {
+    if (storeName === 'history') {
+        memoryStore.history = memoryStore.history.filter(h => h.id !== key);
+    } else if (storeName === 'settings') {
+        delete memoryStore.settings[key];
+    }
+}
+
+async function memClear(storeName) {
+    memoryStore[storeName] = storeName === 'history' ? [] : {};
+}
+
+async function memGet(storeName, key) {
+    if (storeName === 'history') {
+        return memoryStore.history.find(h => h.id === key);
+    } else if (storeName === 'settings') {
+        return memoryStore.settings[key];
+    }
+}
+
 async function dbGetAll(storeName) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(storeName, 'readonly');
-        const store = tx.objectStore(storeName);
-        const req = store.getAll();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
+    try {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(storeName, 'readonly');
+            const store = tx.objectStore(storeName);
+            const req = store.getAll();
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    } catch (e) {
+        return memGetAll(storeName);
+    }
 }
 
 async function dbPut(storeName, data) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(storeName, 'readwrite');
-        const store = tx.objectStore(storeName);
-        const req = store.put(data);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
+    try {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(storeName, 'readwrite');
+            const store = tx.objectStore(storeName);
+            const req = store.put(data);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    } catch (e) {
+        return memPut(storeName, data);
+    }
 }
 
 async function dbDelete(storeName, key) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(storeName, 'readwrite');
-        const store = tx.objectStore(storeName);
-        const req = store.delete(key);
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
-    });
+    try {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(storeName, 'readwrite');
+            const store = tx.objectStore(storeName);
+            const req = store.delete(key);
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+        });
+    } catch (e) {
+        return memDelete(storeName, key);
+    }
 }
 
 async function dbClear(storeName) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(storeName, 'readwrite');
-        const store = tx.objectStore(storeName);
-        const req = store.clear();
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
-    });
+    try {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(storeName, 'readwrite');
+            const store = tx.objectStore(storeName);
+            const req = store.clear();
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+        });
+    } catch (e) {
+        return memClear(storeName);
+    }
 }
 
 async function dbGet(storeName, key) {
-    const db = await openDB();
-    return new Promise((resolve, reject) => {
-        const tx = db.transaction(storeName, 'readonly');
-        const store = tx.objectStore(storeName);
-        const req = store.get(key);
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
+    try {
+        const db = await openDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(storeName, 'readonly');
+            const store = tx.objectStore(storeName);
+            const req = store.get(key);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    } catch (e) {
+        return memGet(storeName, key);
+    }
 }
 
 // ════════════════════════════════════════
@@ -181,6 +243,41 @@ function markdownToHtml(md) {
         .replace(/^\d+\. (.*$)/gim, '<li style="margin:4px 0;color:var(--text-secondary);">$1</li>')
         .replace(/\n/g, '<br>');
 }
+
+// ════════════════════════════════════════
+// HTML ESCAPE UTIL
+// ════════════════════════════════════════
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Safe DOM accessor
+function $(id) { return document.getElementById(id); }
+function safeSetHtml(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+}
+function safeAddClass(id, className) {
+    const el = document.getElementById(id);
+    if (el) el.classList.add(className);
+}
+function safeRemoveClass(id, className) {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove(className);
+}
+function safeSetText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+}
+function safeSetValue(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.value = value;
+}
+
+
 
 // ════════════════════════════════════════
 // STATE MANAGEMENT
@@ -308,8 +405,10 @@ async function loadDraft() {
 function clearInput() {
     document.getElementById('scenario').value = '';
     updateCharCount();
-    document.getElementById('results').classList.remove('active');
-    document.getElementById('livePreview').classList.remove('active');
+    const resultsEl = document.getElementById('results');
+    if (resultsEl) resultsEl.classList.remove('active');
+    const livePreviewEl = document.getElementById('livePreview');
+    if (livePreviewEl) livePreviewEl.classList.remove('active');
     state.currentResult = null;
     state.currentTags = [];
     renderTags();
@@ -605,8 +704,8 @@ function renderTags() {
     const wrapper = document.getElementById('tagWrapper');
     const tagsHtml = state.currentTags.map(tag => `
         <span class="tag-chip">
-            ${tag}
-            <span class="remove" onclick="removeTag('${tag}')">×</span>
+            ${escapeHtml(tag)}
+            <span class="remove" onclick="removeTag('${escapeHtml(tag)}')">×</span>
         </span>
     `).join('');
     wrapper.innerHTML = tagsHtml + '<input type="text" class="tag-input" id="tagInput" placeholder="添加标签..." onkeydown="onTagInput(event)">';
@@ -646,7 +745,7 @@ function updateLivePreview(text) {
 
     const uniqueKeywords = allKeywords.slice(0, 8);
     tagsEl.innerHTML = uniqueKeywords.map(k =>
-        `<span class="live-tag match">${k.word}</span>`
+        `<span class="live-tag match">${escapeHtml(k.word)}</span>`
     ).join('');
 
     const gua = matchGua(text, state.selectedType);
@@ -776,7 +875,7 @@ function updateHistoryUI() {
     const recent = state.history.slice(0, 5);
     const html = recent.map(h => `
         <div class="history-item" onclick="loadHistory(${h.id})">
-            <div class="history-title">${h.scenario || '未命名分析'}</div>
+            <div class="history-title">${escapeHtml(h.scenario) || '未命名分析'}</div>
             <div class="history-meta">
                 <span>${h.gua} · ${h.pratitya}</span>
                 <span>${new Date(h.timestamp).toLocaleDateString()}</span>
@@ -928,7 +1027,7 @@ function renderHistoryView() {
                     ${items.map(h => `
                         <div class="history-card" onclick="loadHistory(${h.id})">
                             <div class="history-card-header">
-                                <div class="history-card-scenario">${h.scenario || '未命名分析'}</div>
+                                <div class="history-card-scenario">${escapeHtml(h.scenario) || '未命名分析'}</div>
                                 <div class="history-card-actions">
                                     <button class="history-card-action ${h.favorited ? 'favorited' : ''}" onclick="toggleFavorite(${h.id}, event)">
                                         ${h.favorited ? '★' : '☆'}
@@ -996,7 +1095,7 @@ function renderFavoritesView() {
     grid.innerHTML = favorites.map(h => `
         <div class="history-card" onclick="loadHistory(${h.id})">
             <div class="history-card-header">
-                <div class="history-card-scenario">${h.scenario || '未命名分析'}</div>
+                <div class="history-card-scenario">${escapeHtml(h.scenario) || '未命名分析'}</div>
                 <div class="history-card-actions">
                     <button class="history-card-action favorited" onclick="toggleFavorite(${h.id}, event)">★</button>
                     <button class="history-card-action" onclick="deleteHistory(${h.id}, event)">
@@ -2271,7 +2370,7 @@ function showToast(msg, type = 'info') {
     const icons = { info: 'ℹ️', success: '✅', warning: '⚠️', error: '❌' };
     toast.innerHTML = `
         <span class="toast-icon">${icons[type] || icons.info}</span>
-        <span>${msg}</span>
+        <span>${escapeHtml(msg)}</span>
         <div class="toast-progress"></div>
     `;
     container.appendChild(toast);
@@ -3041,8 +3140,11 @@ function renderResult(result, withLlmPlaceholder = false) {
         </div>`;
     }
 
-    document.getElementById('results').innerHTML = html;
-    document.getElementById('results').classList.add('active');
+    const resultsEl = document.getElementById('results');
+    if (resultsEl) {
+        resultsEl.innerHTML = html;
+        resultsEl.classList.add('active');
+    }
     
     restoreResultCardStates();
     
@@ -3192,3 +3294,58 @@ renderPratityaView();
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+
+
+// ════════════════════════════════════════
+// TOUCH EVENT SUPPORT (Mobile)
+// ════════════════════════════════════════
+let touchStartX = 0;
+let touchStartY = 0;
+let touchEndX = 0;
+let touchEndY = 0;
+
+function handleTouchStart(e) {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+}
+
+function handleTouchEnd(e) {
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipe();
+}
+
+function handleSwipe() {
+    const swipeThreshold = 80;
+    const diffX = touchEndX - touchStartX;
+    const diffY = touchEndY - touchStartY;
+    
+    // Only handle horizontal swipes
+    if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > swipeThreshold) {
+        const sidebar = document.getElementById('sidebar');
+        if (!sidebar) return;
+        
+        if (diffX > 0 && touchStartX < 50) {
+            // Swipe right from left edge - open sidebar
+            sidebar.classList.add('open');
+        } else if (diffX < 0 && sidebar.classList.contains('open')) {
+            // Swipe left - close sidebar
+            sidebar.classList.remove('open');
+        }
+    }
+}
+
+// Attach touch listeners
+document.addEventListener('touchstart', handleTouchStart, { passive: true });
+document.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+// Touch feedback for buttons
+document.addEventListener('touchstart', (e) => {
+    const btn = e.target.closest('.nav-item, .gua-card, .history-card, .action-item');
+    if (btn) btn.classList.add('touch-active');
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+    document.querySelectorAll('.touch-active').forEach(el => el.classList.remove('touch-active'));
+}, { passive: true });
+

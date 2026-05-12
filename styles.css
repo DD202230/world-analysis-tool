@@ -98,6 +98,44 @@
     --sidebar-width: 260px;
     --header-height: 64px;
     --max-content-width: 760px;
+
+    /* Pratitya node colors */
+    --node-avidya: #e8a0a0;
+    --node-samskara: #e8c4a0;
+    --node-vijnana: var(--accent-300);
+    --node-namarupa: #d4d4a0;
+    --node-sadayatana: #a0d4a0;
+    --node-sparsha: #a0d4d4;
+    --node-vedana: #a0c8e8;
+    --node-trishna: #b0b0e8;
+    --node-upadana: #d4a0d4;
+    --node-bhava: #e8a0b4;
+    --node-jati: #d4c4a0;
+    --node-jaramarana: #c0c0c0;
+    --node-avidya-bg: var(--node-avidya-bg);
+    --node-samskara-bg: var(--node-samskara-bg);
+    --node-vijnana-bg: var(--node-vijnana-bg);
+    --node-namarupa-bg: var(--node-namarupa-bg);
+    --node-sadayatana-bg: var(--node-sadayatana-bg);
+    --node-sparsha-bg: var(--node-sparsha-bg);
+    --node-vedana-bg: var(--node-vedana-bg);
+    --node-trishna-bg: var(--node-trishna-bg);
+    --node-upadana-bg: var(--node-upadana-bg);
+    --node-bhava-bg: var(--node-bhava-bg);
+    --node-jati-bg: var(--node-jati-bg);
+    --node-jaramarana-bg: var(--node-jaramarana-bg);
+    --node-avidya-bg-02: var(--node-avidya-bg-02);
+    --node-samskara-bg-02: var(--node-samskara-bg-02);
+    --node-vijnana-bg-02: rgba(201,169,110,0.2);
+    --node-namarupa-bg-02: var(--node-namarupa-bg-02);
+    --node-sadayatana-bg-02: var(--node-sadayatana-bg-02);
+    --node-sparsha-bg-02: var(--node-sparsha-bg-02);
+    --node-vedana-bg-02: var(--node-vedana-bg-02);
+    --node-trishna-bg-02: var(--node-trishna-bg-02);
+    --node-upadana-bg-02: var(--node-upadana-bg-02);
+    --node-bhava-bg-02: var(--node-bhava-bg-02);
+    --node-jati-bg-02: var(--node-jati-bg-02);
+    --node-jaramarana-bg-02: var(--node-jaramarana-bg-02);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1004,7 +1042,7 @@ body {
 
 .tag-yin {
     background: rgba(90,106,122,0.1);
-    color: #8a9aaa;
+    color: var(--text-tertiary);
     border: 1px solid rgba(90,106,122,0.15);
 }
 
@@ -1017,7 +1055,7 @@ body {
 .tag-danger {
     background: var(--danger-dim);
     color: var(--danger);
-    border: 1px solid rgba(201,79,79,0.2);
+    border: 1px solid var(--node-avidya-bg-02);
 }
 
 .tag-info {
@@ -1122,18 +1160,18 @@ body {
     opacity: 0.5;
 }
 
-.node-avidya { background: rgba(201,79,79,0.12); color: #e8a0a0; }
-.node-samskara { background: rgba(201,140,79,0.12); color: #e8c4a0; }
-.node-vijnana { background: rgba(201,169,110,0.12); color: var(--accent-300); }
-.node-namarupa { background: rgba(180,180,120,0.12); color: #d4d4a0; }
-.node-sadayatana { background: rgba(140,180,140,0.12); color: #a0d4a0; }
-.node-sparsha { background: rgba(120,180,180,0.12); color: #a0d4d4; }
-.node-vedana { background: rgba(120,160,200,0.12); color: #a0c8e8; }
-.node-trishna { background: rgba(140,140,200,0.12); color: #b0b0e8; }
-.node-upadana { background: rgba(180,140,180,0.12); color: #d4a0d4; }
-.node-bhava { background: rgba(200,140,160,0.12); color: #e8a0b4; }
-.node-jati { background: rgba(180,160,140,0.12); color: #d4c4a0; }
-.node-jaramarana { background: rgba(140,140,140,0.12); color: #c0c0c0; }
+.node-avidya { background: var(--node-avidya-bg); color: var(--node-avidya); }
+.node-samskara { background: var(--node-samskara-bg); color: var(--node-samskara); }
+.node-vijnana { background: var(--node-vijnana-bg); color: var(--accent-300); }
+.node-namarupa { background: var(--node-namarupa-bg); color: var(--node-namarupa); }
+.node-sadayatana { background: var(--node-sadayatana-bg); color: var(--node-sadayatana); }
+.node-sparsha { background: var(--node-sparsha-bg); color: var(--node-sparsha); }
+.node-vedana { background: var(--node-vedana-bg); color: var(--node-vedana); }
+.node-trishna { background: var(--node-trishna-bg); color: var(--node-trishna); }
+.node-upadana { background: var(--node-upadana-bg); color: var(--node-upadana); }
+.node-bhava { background: var(--node-bhava-bg); color: var(--node-bhava); }
+.node-jati { background: var(--node-jati-bg); color: var(--node-jati); }
+.node-jaramarana { background: var(--node-jaramarana-bg); color: var(--node-jaramarana); }
 
 /* ════════════════════════════════════════
    CROSS ANALYSIS
@@ -2956,18 +2994,18 @@ textarea:focus-visible {
     background: transparent;
 }
 
-.pratitya-node-num.node-avidya { background: rgba(201,79,79,0.2); color: #e8a0a0; }
-.pratitya-node-num.node-samskara { background: rgba(201,140,79,0.2); color: #e8c4a0; }
+.pratitya-node-num.node-avidya { background: var(--node-avidya-bg-02); color: var(--node-avidya); }
+.pratitya-node-num.node-samskara { background: var(--node-samskara-bg-02); color: var(--node-samskara); }
 .pratitya-node-num.node-vijnana { background: rgba(201,169,110,0.2); color: var(--accent-300); }
-.pratitya-node-num.node-namarupa { background: rgba(180,180,120,0.2); color: #d4d4a0; }
-.pratitya-node-num.node-sadayatana { background: rgba(140,180,140,0.2); color: #a0d4a0; }
-.pratitya-node-num.node-sparsha { background: rgba(120,180,180,0.2); color: #a0d4d4; }
-.pratitya-node-num.node-vedana { background: rgba(120,160,200,0.2); color: #a0c8e8; }
-.pratitya-node-num.node-trishna { background: rgba(140,140,200,0.2); color: #b0b0e8; }
-.pratitya-node-num.node-upadana { background: rgba(180,140,180,0.2); color: #d4a0d4; }
-.pratitya-node-num.node-bhava { background: rgba(200,140,160,0.2); color: #e8a0b4; }
-.pratitya-node-num.node-jati { background: rgba(180,160,140,0.2); color: #d4c4a0; }
-.pratitya-node-num.node-jaramarana { background: rgba(140,140,140,0.2); color: #c0c0c0; }
+.pratitya-node-num.node-namarupa { background: var(--node-namarupa-bg-02); color: var(--node-namarupa); }
+.pratitya-node-num.node-sadayatana { background: var(--node-sadayatana-bg-02); color: var(--node-sadayatana); }
+.pratitya-node-num.node-sparsha { background: var(--node-sparsha-bg-02); color: var(--node-sparsha); }
+.pratitya-node-num.node-vedana { background: var(--node-vedana-bg-02); color: var(--node-vedana); }
+.pratitya-node-num.node-trishna { background: var(--node-trishna-bg-02); color: var(--node-trishna); }
+.pratitya-node-num.node-upadana { background: var(--node-upadana-bg-02); color: var(--node-upadana); }
+.pratitya-node-num.node-bhava { background: var(--node-bhava-bg-02); color: var(--node-bhava); }
+.pratitya-node-num.node-jati { background: var(--node-jati-bg-02); color: var(--node-jati); }
+.pratitya-node-num.node-jaramarana { background: var(--node-jaramarana-bg-02); color: var(--node-jaramarana); }
 /* ════════════════════════════════════════
    LLM ANALYSIS CARD
    ════════════════════════════════════════ */
@@ -3036,4 +3074,30 @@ textarea:focus-visible {
 @keyframes llmPulse {
     0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
     40% { transform: scale(1); opacity: 1; }
+}
+
+/* Touch feedback */
+.touch-active {
+    opacity: 0.7 !important;
+    transform: scale(0.98) !important;
+}
+
+/* Improve touch targets on mobile */
+@media (max-width: 768px) {
+    .nav-item {
+        min-height: 44px;
+    }
+    .gua-card {
+        min-height: 80px;
+    }
+    .history-card {
+        min-height: 60px;
+    }
+    .action-item {
+        min-height: 44px;
+    }
+    .header-btn {
+        min-height: 36px;
+        min-width: 36px;
+    }
 }

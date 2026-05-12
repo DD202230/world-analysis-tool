@@ -355,7 +355,7 @@ async function showToastAnimated(msg, type = 'info') {
   
   toast.innerHTML = `
     <span class="toast-icon">${icons[type] || icons.info}</span>
-    <span>${msg}</span>
+    <span>${escapeHtml(msg)}</span>
     <div class="toast-progress"></div>
   `;
   
