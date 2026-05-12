@@ -187,6 +187,20 @@
                 
                 <div class="nav-section">
                     <div class="nav-section-title">知识</div>
+                    <div class="nav-item" onclick="switchView('phenomenology')" data-nav="phenomenology">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 2v4"></path>
+                            <path d="M12 18v4"></path>
+                            <path d="M4.93 4.93l2.83 2.83"></path>
+                            <path d="M16.24 16.24l2.83 2.83"></path>
+                            <path d="M2 12h4"></path>
+                            <path d="M18 12h4"></path>
+                            <path d="M4.93 19.07l2.83-2.83"></path>
+                            <path d="M16.24 7.76l2.83-2.83"></path>
+                        </svg>
+                        现象学
+                    </div>
                     <div class="nav-item" onclick="switchView('gua')" data-nav="gua">
                         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
@@ -201,6 +215,24 @@
                             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                         </svg>
                         十二因缘
+                    </div>
+                    <div class="nav-item" onclick="switchView('praxis')" data-nav="praxis">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+                        </svg>
+                        实践论
+                    </div>
+                    <div class="nav-item" onclick="switchView('contradiction')" data-nav="contradiction">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+                        </svg>
+                        矛盾论
+                    </div>
+                    <div class="nav-item" onclick="switchView('stoic')" data-nav="stoic">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                        </svg>
+                        斯多葛
                     </div>
                 </div>
                 
@@ -357,15 +389,27 @@
                             <div class="options-grid" id="dimOptions">
                                 <button class="option-chip selected" data-dim="all" onclick="selectDim(this)">
                                     <span class="chip-title">全面分析</span>
-                                    <span class="chip-desc">卦象 + 因缘 + 交叉</span>
+                                    <span class="chip-desc">现象学 + 推演 + 指导</span>
+                                </button>
+                                <button class="option-chip" data-dim="phenomenology" onclick="selectDim(this)">
+                                    <span class="chip-title">现象学</span>
+                                    <span class="chip-desc">分析层：回到事物本身</span>
                                 </button>
                                 <button class="option-chip" data-dim="yijing" onclick="selectDim(this)">
                                     <span class="chip-title">易经视角</span>
-                                    <span class="chip-desc">系统状态与演化</span>
+                                    <span class="chip-desc">推演层：系统状态与演化</span>
                                 </button>
                                 <button class="option-chip" data-dim="buddhism" onclick="selectDim(this)">
                                     <span class="chip-title">十二因缘</span>
-                                    <span class="chip-desc">人性驱动与卡点</span>
+                                    <span class="chip-desc">推演层：人性驱动与卡点</span>
+                                </button>
+                                <button class="option-chip" data-dim="marxism" onclick="selectDim(this)">
+                                    <span class="chip-title">马克思主义</span>
+                                    <span class="chip-desc">指导层：实践论+矛盾论</span>
+                                </button>
+                                <button class="option-chip" data-dim="stoic" onclick="selectDim(this)">
+                                    <span class="chip-title">斯多葛</span>
+                                    <span class="chip-desc">指导层：可控之事</span>
                                 </button>
                             </div>
                         </div>
@@ -499,6 +543,20 @@
                         <h2 class="history-view-title">十二因缘</h2>
                     </div>
                     <div class="pratitya-chain-visual" id="pratityaChain"></div>
+                </div>
+
+                <!-- Phenomenology View -->
+                <div id="phenomenologyView" style="display:none">
+                    <div class="history-view-header">
+                        <h2 class="history-view-title">现象学 · 回到事物本身</h2>
+                    </div>
+                </div>
+
+                <!-- Stoic View -->
+                <div id="stoicView" style="display:none">
+                    <div class="history-view-header">
+                        <h2 class="history-view-title">斯多葛 · 可控之事</h2>
+                    </div>
                 </div>
             </div>
         </main>
