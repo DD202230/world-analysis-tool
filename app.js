@@ -378,6 +378,20 @@ function applySettings() {
 // ════════════════════════════════════════
 let draftSaveTimeout;
 let livePreviewTimeout;
+
+// ════════════════════════════════════════
+// DEBOUNCE UTILITIES
+// ════════════════════════════════════════
+function debounce(fn, delay) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn.apply(this, args), delay);
+    };
+}
+
+const debouncedRenderHistoryView = debounce(renderHistoryView, 200);
+const debouncedRenderGuaView = debounce(renderGuaView, 200);
 function onScenarioInput() {
     updateCharCount();
     clearTimeout(livePreviewTimeout);
@@ -653,12 +667,25 @@ function switchView(view) {
     if (view === 'history') { renderHistoryView(); setTimeout(() => window.YIYIN_ANIMATIONS?.animateHistoryCards(), 100); }
     if (view === 'favorites') renderFavoritesView();
     if (view === 'compare') renderCompareView();
-    if (view === 'gua') { renderGuaView(); setTimeout(() => window.YIYIN_ANIMATIONS?.animateGuaCards(), 100); }
-    if (view === 'pratitya') renderPratityaView();
-    if (view === 'phenomenology') renderPhenomenologyView();
-    if (view === 'praxis') renderPraxisView();
-    if (view === 'contradiction') renderContradictionView();
-    if (view === 'stoic') renderStoicView();
+    // Knowledge views: trigger render if not yet rendered by IntersectionObserver
+    if (view === 'gua' && knowledgeViewRenderers.gua && !knowledgeViewRenderers.gua.rendered) {
+        knowledgeViewRenderers.gua.fn(); knowledgeViewRenderers.gua.rendered = true;
+    }
+    if (view === 'pratitya' && knowledgeViewRenderers.pratitya && !knowledgeViewRenderers.pratitya.rendered) {
+        knowledgeViewRenderers.pratitya.fn(); knowledgeViewRenderers.pratitya.rendered = true;
+    }
+    if (view === 'phenomenology' && knowledgeViewRenderers.phenomenology && !knowledgeViewRenderers.phenomenology.rendered) {
+        knowledgeViewRenderers.phenomenology.fn(); knowledgeViewRenderers.phenomenology.rendered = true;
+    }
+    if (view === 'praxis' && knowledgeViewRenderers.praxis && !knowledgeViewRenderers.praxis.rendered) {
+        knowledgeViewRenderers.praxis.fn(); knowledgeViewRenderers.praxis.rendered = true;
+    }
+    if (view === 'contradiction' && knowledgeViewRenderers.contradiction && !knowledgeViewRenderers.contradiction.rendered) {
+        knowledgeViewRenderers.contradiction.fn(); knowledgeViewRenderers.contradiction.rendered = true;
+    }
+    if (view === 'stoic' && knowledgeViewRenderers.stoic && !knowledgeViewRenderers.stoic.rendered) {
+        knowledgeViewRenderers.stoic.fn(); knowledgeViewRenderers.stoic.rendered = true;
+    }
 
     if (window.innerWidth <= 768) {
         document.getElementById('sidebar').classList.remove('open');
@@ -2137,7 +2164,21 @@ function saveLlmApiKey(key) {
     saveSettings();
 }
 
+// ════════════════════════════════════════
+// LLM STREAMING WITH ABORTCONTROLLER
+// ════════════════════════════════════════
+let currentLlmAbortController = null;
+
 async function streamLLM(prompt, onChunk, onDone, onError) {
+    // Cancel any ongoing request
+    if (currentLlmAbortController) {
+        currentLlmAbortController.abort();
+        currentLlmAbortController = null;
+    }
+    
+    const abortController = new AbortController();
+    currentLlmAbortController = abortController;
+    
     const provider = state.settings.llmProvider || 'kimi';
     const apiKey = state.settings.llmApiKey;
     const config = LLM_CONFIG.providers[provider];
@@ -2158,6 +2199,7 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
         const response = await fetch(config.endpoint, {
             method: 'POST',
             headers,
+            signal: abortController.signal,
             body: JSON.stringify({
                 model: state.settings.llmModel || config.defaultModel,
                 messages: [
@@ -2193,6 +2235,7 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
                     const data = line.slice(6);
                     if (data === '[DONE]') {
                         onDone();
+                        currentLlmAbortController = null;
                         return;
                     }
                     try {
@@ -2207,7 +2250,13 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
         }
 
         onDone();
+        currentLlmAbortController = null;
     } catch (err) {
+        currentLlmAbortController = null;
+        if (err.name === 'AbortError') {
+            // User cancelled or new request started — silent return
+            return;
+        }
         if (err.message?.includes('Load failed') || err.message?.includes('Failed to fetch')) {
             onError(`网络连接失败。${config.cors === false ? 'Kimi/DeepSeek 官方 API 不支持浏览器直接调用，请切换到 OpenRouter 或使用后端代理。' : '请检查网络连接和 API Key。'}`);
         } else {
@@ -3545,11 +3594,41 @@ updateCharCount();
 renderTimeDivination();
 renderTags();
 
-// Pre-render knowledge views so they're ready when user switches
-renderGuaView();
-renderPratityaView();
-renderPraxisView();
-renderContradictionView();
+// ════════════════════════════════════════
+// INTERSECTION OBSERVER LAZY LOADING
+// ════════════════════════════════════════
+const knowledgeViewRenderers = {
+    gua: { rendered: false, fn: () => { renderGuaView(); setTimeout(() => window.YIYIN_ANIMATIONS?.animateGuaCards(), 100); } },
+    pratitya: { rendered: false, fn: () => renderPratityaView() },
+    phenomenology: { rendered: false, fn: () => renderPhenomenologyView() },
+    praxis: { rendered: false, fn: () => renderPraxisView() },
+    contradiction: { rendered: false, fn: () => renderContradictionView() },
+    stoic: { rendered: false, fn: () => renderStoicView() }
+};
+
+// Observe knowledge view containers for lazy rendering
+if ('IntersectionObserver' in window) {
+    const viewObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const viewId = entry.target.id.replace('View', '');
+                const renderer = knowledgeViewRenderers[viewId];
+                if (renderer && !renderer.rendered) {
+                    renderer.fn();
+                    renderer.rendered = true;
+                }
+            }
+        });
+    }, { root: document.getElementById('mainContent'), threshold: 0.01 });
+
+    Object.keys(knowledgeViewRenderers).forEach(view => {
+        const el = document.getElementById(view + 'View');
+        if (el) viewObserver.observe(el);
+    });
+} else {
+    // Fallback: pre-render all for browsers without IO support
+    Object.values(knowledgeViewRenderers).forEach(r => { if (!r.rendered) { r.fn(); r.rendered = true; } });
+}
 
 // Register service worker
 if ('serviceWorker' in navigator) {
@@ -3610,7 +3689,7 @@ document.addEventListener('touchend', (e) => {
     document.querySelectorAll('.touch-active').forEach(el => el.classList.remove('touch-active'));
 }, { passive: true });
 function renderPraxisView(container) {
-    if (!container) container = document.getElementById('praxisView');
+    if (!container) container = document.getElementById('praxisGrid');
     if (!container) return;
     let html = `
     <div class="knowledge-section">
@@ -3654,7 +3733,7 @@ function renderPraxisView(container) {
 }
 
 function renderContradictionView(container) {
-    if (!container) container = document.getElementById('contradictionView');
+    if (!container) container = document.getElementById('contradictionGrid');
     if (!container) return;
     let html = `
     <div class="knowledge-section">
@@ -3708,7 +3787,7 @@ function renderContradictionView(container) {
 }
 
 function renderPhenomenologyView(container) {
-    if (!container) container = document.getElementById('phenomenologyView');
+    if (!container) container = document.getElementById('phenomenologyGrid');
     if (!container) return;
     let html = `
     <div class="knowledge-section">
@@ -3754,7 +3833,7 @@ function renderPhenomenologyView(container) {
 }
 
 function renderStoicView(container) {
-    if (!container) container = document.getElementById('stoicView');
+    if (!container) container = document.getElementById('stoicGrid');
     if (!container) return;
     let html = `
     <div class="knowledge-section">

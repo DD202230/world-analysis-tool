@@ -10,8 +10,10 @@
     <title>易因 · 世界分析引擎</title>
     <link rel="manifest" href="manifest.json">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
+    <!-- Non-critical styles loaded asynchronously -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
 </head>
 <body>
     <div class="particles-container" id="particles"></div>
@@ -492,7 +494,7 @@
                             <circle cx="11" cy="11" r="8"></circle>
                             <path d="m21 21-4.3-4.3"></path>
                         </svg>
-                        <input type="text" id="historySearch" placeholder="搜索历史记录..." oninput="renderHistoryView()">
+                        <input type="text" id="historySearch" placeholder="搜索历史记录..." oninput="debouncedRenderHistoryView()">
                     </div>
                     <div class="history-grid" id="historyGrid"></div>
                 </div>
@@ -533,7 +535,7 @@
                             <circle cx="11" cy="11" r="8"></circle>
                             <path d="m21 21-4.3-4.3"></path>
                         </svg>
-                        <input type="text" id="guaSearch" placeholder="搜索卦名..." oninput="renderGuaView()">
+                        <input type="text" id="guaSearch" placeholder="搜索卦名..." oninput="debouncedRenderGuaView()">
                     </div>
                     <div class="gua-grid" id="guaGrid"></div>
                 </div>
@@ -551,6 +553,7 @@
                     <div class="history-view-header">
                         <h2 class="history-view-title">现象学 · 回到事物本身</h2>
                     </div>
+                    <div class="knowledge-grid" id="phenomenologyGrid"></div>
                 </div>
 
                 <!-- Praxis View -->
@@ -558,6 +561,7 @@
                     <div class="history-view-header">
                         <h2 class="history-view-title">实践论 · 认识发展</h2>
                     </div>
+                    <div class="knowledge-grid" id="praxisGrid"></div>
                 </div>
 
                 <!-- Contradiction View -->
@@ -565,6 +569,7 @@
                     <div class="history-view-header">
                         <h2 class="history-view-title">矛盾论 · 结构动力学</h2>
                     </div>
+                    <div class="knowledge-grid" id="contradictionGrid"></div>
                 </div>
 
                 <!-- Stoic View -->
@@ -572,6 +577,7 @@
                     <div class="history-view-header">
                         <h2 class="history-view-title">斯多葛 · 可控之事</h2>
                     </div>
+                    <div class="knowledge-grid" id="stoicGrid"></div>
                 </div>
             </div>
         </main>
