@@ -1,11 +1,17 @@
-const CACHE_NAME = 'yiyin-v4';
+const CACHE_NAME = 'yiyin-v4-3-5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/styles.css',
   '/app.js',
   '/animations.js',
-  '/manifest.json'
+  '/manifest.json',
+  '/data/guaData.js',
+  '/data/pratityaData.js',
+  '/data/praxisData.js',
+  '/data/contradictionData.js',
+  '/data/phenomenologyData.js',
+  '/data/stoicData.js'
 ];
 
 // Install: cache static assets

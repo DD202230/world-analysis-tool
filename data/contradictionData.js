@@ -76,21 +76,21 @@ const contradictionPatterns = {
 
 // 矛盾论分析工具：主次矛盾矩阵
 const contradictionMatrix = {
-    // 常见场景的主次矛盾映射
-    startup: {
+    // 6大标准场景
+    personal: {
         primary: "principal",
-        secondary: "particularity",
-        desc: "创业场景：主要矛盾是产品-市场匹配，次要矛盾是团队能力"
+        secondary: "transformation",
+        desc: "个人成长：主要矛盾是目标-能力匹配，次要矛盾是转型时机"
     },
     relationship: {
         primary: "particularity",
         secondary: "universality",
         desc: "关系场景：主要矛盾是沟通模式，次要矛盾是价值观差异"
     },
-    career: {
+    business: {
         primary: "principal",
-        secondary: "transformation",
-        desc: "职业场景：主要矛盾是能力-机会匹配，次要矛盾是转型时机"
+        secondary: "particularity",
+        desc: "商业场景：主要矛盾是产品-市场匹配，次要矛盾是团队能力"
     },
     social: {
         primary: "universality",
