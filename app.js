@@ -2066,12 +2066,20 @@ function shareResult() {
         return;
     }
 
-    // Generate shareable URL with encoded result
+    // Generate shareable URL with encoded result (三类分工完整数据)
     try {
+        const r = state.currentResult;
         const shareData = {
-            s: state.currentResult.scenario.slice(0, 200),
-            g: state.currentResult.gua.name,
-            p: state.currentResult.pratitya.primary.key,
+            s: r.scenario.slice(0, 200),
+            // 推演层
+            g: r.gua.name,
+            p: r.pratitya.primary.key,
+            // 分析层
+            ph: r.phenomenology.primary.key,
+            // 指导层
+            px: r.praxis.primary.key,
+            c: r.contradiction.primary.key,
+            st: r.stoic.primary.key,
             t: Date.now()
         };
         const encoded = btoa(encodeURIComponent(JSON.stringify(shareData)));
@@ -2080,14 +2088,15 @@ function shareResult() {
         navigator.clipboard.writeText(shareUrl).then(() => {
             showToast('分享链接已复制到剪贴板');
         }).catch(() => {
-            // Fallback
-            const text = `【易因分析】\n卦象：${state.currentResult.gua.fullname}\n卡点：${state.currentResult.pratitya.primary.name}\n\n${state.currentResult.cross}`;
+            // Fallback: 文本摘要包含三类分工
+            const text = `【易因分析】\n分析层：${r.phenomenology.primary.name}\n推演层：${r.gua.fullname} · ${r.pratitya.primary.name}\n指导层：${r.praxis.primary.name} · ${r.contradiction.primary.name} · ${r.stoic.primary.name}\n\n${r.cross}`;
             navigator.clipboard.writeText(text).then(() => {
                 showToast('分析摘要已复制（链接生成失败）');
             });
         });
     } catch (e) {
-        const text = `【易因分析】\n卦象：${state.currentResult.gua.fullname}\n卡点：${state.currentResult.pratitya.primary.name}\n\n${state.currentResult.cross}`;
+        const r = state.currentResult;
+        const text = `【易因分析】\n分析层：${r.phenomenology.primary.name}\n推演层：${r.gua.fullname} · ${r.pratitya.primary.name}\n指导层：${r.praxis.primary.name} · ${r.contradiction.primary.name} · ${r.stoic.primary.name}\n\n${r.cross}`;
         navigator.clipboard.writeText(text).then(() => {
             showToast('分析摘要已复制到剪贴板');
         });
@@ -2365,35 +2374,70 @@ function handleShareUrl() {
             if (shareData.s) {
                 document.getElementById('scenario').value = shareData.s;
                 updateCharCount();
-                if (shareData.g && guaData[shareData.g]) {
-                    const gua = guaData[shareData.g];
-                    const pratityaKey = shareData.p || 'avidya';
+                
+                // 辅助函数：构建分析结果对象
+                const buildResult = (guaName, pratityaKey, phenomKey, praxisKey, contraKey, stoicKey) => {
+                    const gua = guaData[guaName] || guaData['qian'];
                     const pratitya = {
-                        primary: { ...pratityaData[pratityaKey], key: pratityaKey },
+                        primary: { ...pratityaData[pratityaKey || 'avidya'], key: pratityaKey || 'avidya' },
                         secondary: null,
                         chain: Object.keys(pratityaData).map(key => ({
                             key, data: pratityaData[key],
-                            isPrimary: key === pratityaKey,
+                            isPrimary: key === (pratityaKey || 'avidya'),
                             isSecondary: false
                         }))
                     };
-                    const result = {
-                        gua,
-                        pratitya,
-                        cross: `${gua.fullname}的${gua.phase}状态与「${pratitya.primary.name}」的卡点形成共振。`,
-                        actions: generateActions(gua, pratitya, null),
+                    const phenomenology = {
+                        primary: { ...phenomenologyData[phenomKey || 'epoché'], key: phenomKey || 'epoché' },
+                        secondary: null,
+                        chain: Object.keys(phenomenologyData).map(key => ({
+                            key, data: phenomenologyData[key],
+                            isPrimary: key === (phenomKey || 'epoché'),
+                            isSecondary: false
+                        }))
+                    };
+                    const praxis = {
+                        primary: { ...praxisData[praxisKey || 'perceptual'], key: praxisKey || 'perceptual' },
+                        secondary: null,
+                        chain: Object.keys(praxisData).map(key => ({
+                            key, data: praxisData[key],
+                            isPrimary: key === (praxisKey || 'perceptual'),
+                            isSecondary: false
+                        }))
+                    };
+                    const contradiction = {
+                        primary: { ...contradictionData[contraKey || 'universality'], key: contraKey || 'universality' },
+                        secondary: null,
+                        matrix: null
+                    };
+                    const stoic = {
+                        primary: { ...stoicData[stoicKey || 'dichotomy'], key: stoicKey || 'dichotomy' },
+                        secondary: null,
+                        matrix: null
+                    };
+                    const cross = crossAnalysis4D(gua, pratitya, praxis, contradiction, phenomenology, stoic);
+                    return {
+                        phenomenology, gua, pratitya,
+                        praxis, contradiction, stoic,
+                        cross, actions: generateActions(gua, pratitya, null),
                         scenario: shareData.s,
                         timestamp: shareData.t || Date.now()
                     };
-                    state.currentResult = result;
-                    renderResult(result);
-                    showToast('已加载分享的分析');
-                }
+                };
+                
+                const result = buildResult(
+                    shareData.g, shareData.p,
+                    shareData.ph, shareData.px, shareData.c, shareData.st
+                );
+                state.currentResult = result;
+                renderResult(result);
+                showToast('已加载分享的分析');
                 // Clear the hash
                 history.replaceState(null, '', window.location.pathname + window.location.search);
             }
         } catch (e) {
-            console.error('Failed to parse share URL:', e);
+            // Silent fail for invalid share URLs
+            showToast('分享链接无效或已过期', 'error');
         }
     }
 }
@@ -2719,12 +2763,12 @@ function matchStoic(scenario, type) {
     };
 }
 
-function crossAnalysis4D(gua, pratitya, praxis, contradiction) {
-    const key = `${gua.name}-${pratitya.primary.key}-${praxis.primary.key}-${contradiction.primary.key}`;
+function crossAnalysis4D(gua, pratitya, praxis, contradiction, phenomenology, stoic) {
+    const key = `${gua.name}-${pratitya.primary.key}-${praxis.primary.key}-${contradiction.primary.key}-${phenomenology ? phenomenology.primary.key : 'none'}-${stoic ? stoic.primary.key : 'none'}`;
     const templates = [
-        `${gua.fullname}的${gua.phase}状态揭示：当前处于${praxis.primary.name}阶段，核心矛盾是${contradiction.primary.name}。${pratitya.primary.name}的卡点使${praxis.primary.breakPoint}受阻，而${contradiction.primary.dialectic}提示突破方向。`,
-        `从${gua.nature}的能量态看，${praxis.primary.name}是主要认知特征；从人性层面看，${pratitya.primary.name}构成驱动惯性；从矛盾论看，${contradiction.primary.name}决定发展方向。三者的共振点在于：${gua.transform}。`,
-        `${gua.fullname}提示${gua.danger}，而${praxis.primary.name}阶段的${pratitya.primary.manifestation}加剧了${contradiction.primary.manifestation}。突破需同时满足：${pratitya.primary.breakPoint}、${praxis.primary.breakPoint}、${contradiction.primary.breakPoint}。`
+        `${gua.fullname}的${gua.phase}状态揭示：当前处于${praxis.primary.name}阶段，核心矛盾是${contradiction.primary.name}。${pratitya.primary.name}的卡点使${praxis.primary.breakPoint}受阻，而${contradiction.primary.dialectic}提示突破方向。${phenomenology ? '现象学视角：' + phenomenology.primary.name + '提醒我们' + phenomenology.primary.breakPoint + '。' : ''}${stoic ? '斯多葛行动：以' + stoic.primary.name + '为锚，' + stoic.primary.breakPoint + '。' : ''}`,
+        `从${gua.nature}的能量态看，${praxis.primary.name}是主要认知特征；从人性层面看，${pratitya.primary.name}构成驱动惯性；从矛盾论看，${contradiction.primary.name}决定发展方向。${phenomenology ? '现象学层面：' + phenomenology.primary.manifestation + '。' : ''}${stoic ? '行动层面：' + stoic.primary.practice + '。' : ''}三者的共振点在于：${gua.transform}。`,
+        `${gua.fullname}提示${gua.danger}，而${praxis.primary.name}阶段的${pratitya.primary.manifestation}加剧了${contradiction.primary.manifestation}。突破需同时满足：${pratitya.primary.breakPoint}、${praxis.primary.breakPoint}、${contradiction.primary.breakPoint}。${phenomenology ? '同时回到事物本身：' + phenomenology.primary.questions[0] : ''}${stoic ? '并以斯多葛原则自持：' + stoic.primary.questions[0] : ''}`
     ];
     const hash = key.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
     return templates[hash % templates.length];
@@ -2903,8 +2947,8 @@ function analyze() {
         const contradiction = matchContradiction(scenario, state.selectedType);
         const stoic = matchStoic(scenario, state.selectedType);
         
-        // 交叉分析（推演层 + 指导层）
-        const cross = crossAnalysis4D(gua, pratitya, praxis, contradiction);
+        // 交叉分析（推演层 + 指导层 + 分析层）
+        const cross = crossAnalysis4D(gua, pratitya, praxis, contradiction, phenomenology, stoic);
         
         // 行动建议（综合三层）
         const actions = generateActions(gua, pratitya, changedGua);
