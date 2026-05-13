@@ -78,3 +78,16 @@ const phenomenologyPatterns = {
     lifeworld: ["背景", "环境", "氛围", "文化", "传统", "常识", "默认", "不言而喻", "隐性", "潜规则"],
     intersubjectivity: ["他人", "别人", "社会", "期待", "眼光", "评价", "认可", "认同", "归属", "关系"]
 };
+
+const phenomenologyMatrix = {
+    personal: { primary: "epoché", secondary: "lifeworld", desc: "个人决策需悬置预设，觉察生活世界中的隐性前提" },
+    relationship: { primary: "intersubjectivity", secondary: "noesis", desc: "关系分析需觉察交互主体性，关注意识的指向方式" },
+    business: { primary: "epoché", secondary: "intersubjectivity", desc: "商业分析需剥离市场预设，理解组织中的隐性共识" },
+    social: { primary: "lifeworld", secondary: "noema", desc: "社会现象需回到生活世界，觉察集体意识的构造方式" },
+    creative: { primary: "noesis", secondary: "noema", desc: "创作分析需关注意向活动，理解作品在意识中的呈现" },
+    political: { primary: "epoché", secondary: "intersubjectivity", desc: "权力分析需悬置意识形态预设，觉察群体中的主体间结构" }
+};
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { phenomenologyData, phenomenologyPatterns, phenomenologyMatrix };
+}

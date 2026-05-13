@@ -83,3 +83,7 @@ const stoicMatrix = {
     creative: { primary: "amor_fati", secondary: "apatheia", desc: "创作瓶颈需接纳当下状态，不被自我怀疑吞噬，在限制中寻找形式" },
     political: { primary: "dichotomy", secondary: "oikeiosis", desc: "政治博弈需清醒区分可控边界，同时保持对人类共同体的关怀" }
 };
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { stoicData, stoicPatterns, stoicMatrix };
+}

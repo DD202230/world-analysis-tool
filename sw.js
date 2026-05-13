@@ -35,6 +35,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Skip cross-origin requests (API calls, etc.) — let browser handle them
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
   // Navigation requests: network first, fallback to cache
   if (request.mode === 'navigate') {
     event.respondWith(

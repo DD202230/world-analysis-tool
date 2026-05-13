@@ -14,6 +14,10 @@ const praxisData = {
         inDecision: "基于表面现象和直觉做出的快速判断，容易被表象迷惑",
         breakPoint: "深入调查研究，透过现象看本质；从感性上升到理性",
         dialectic: "量变积累阶段——大量感性材料的收集是飞跃到理性的前提",
+        questions: [
+            "我现在的判断是否基于足够的信息？",
+            "有哪些现象是我选择性忽略的？"
+        ],
         color: "node-perceptual"
     },
     rational: {
@@ -25,6 +29,10 @@ const praxisData = {
         inDecision: "基于分析和推理做出判断，但可能脱离实际，成为教条",
         breakPoint: "将理论回到实践中检验；避免本本主义和教条主义",
         dialectic: "质变飞跃阶段——从感性到理性是认识过程的第一次飞跃",
+        questions: [
+            "我的理论分析是否脱离了实际情况？",
+            "有哪些『理所当然』的前提其实未经检验？"
+        ],
         color: "node-rational"
     },
     practice: {
@@ -36,6 +44,10 @@ const praxisData = {
         inDecision: "在实践中检验决策，根据反馈调整方向",
         breakPoint: "勇于实践、不怕失败；从实践中学习而非纸上谈兵",
         dialectic: "否定之否定——实践可能证伪认识，推动认识向前发展",
+        questions: [
+            "我是否因为害怕失败而迟迟不行动？",
+            "最小可行的验证方式是什么？"
+        ],
         color: "node-practice"
     },
     reflection: {
@@ -47,6 +59,10 @@ const praxisData = {
         inDecision: "承认错误、调整策略；不因沉没成本而固执己见",
         breakPoint: "实事求是、敢于自我批评；将失败转化为养分",
         dialectic: "螺旋上升——每一次修正都是向更高层次的回归",
+        questions: [
+            "我是否在维护一个已经失败的决策？",
+            "如果重新开始，我会怎么做不同？"
+        ],
         color: "node-reflection"
     },
     new_practice: {
@@ -58,6 +74,10 @@ const praxisData = {
         inDecision: "将升级后的认识再次投入实践，开启新一轮循环",
         breakPoint: "保持开放心态；认识到实践-认识的循环永无止境",
         dialectic: "波浪式前进——发展是前进性与曲折性的统一",
+        questions: [
+            "这次迭代让我对事物有了什么新认识？",
+            "下一轮实践中，我要验证什么新假设？"
+        ],
         color: "node-new-practice"
     }
 };
@@ -79,6 +99,15 @@ const praxisFlow = [
     { from: "new_practice", to: "perceptual", arrow: "循环", desc: "开启新认识周期" }
 ];
 
+const praxisMatrix = {
+    personal: { primary: "perceptual", secondary: "reflection", desc: "个人成长常始于感性认识，经反思修正后进入新实践" },
+    relationship: { primary: "reflection", secondary: "practice", desc: "关系改善需从反思过往模式开始，再通过实践验证新方式" },
+    business: { primary: "practice", secondary: "reflection", desc: "商业决策强调快速实践和持续迭代，在行动中学习和修正" },
+    social: { primary: "rational", secondary: "practice", desc: "社会分析需从理论框架入手，再通过实践检验其适用性" },
+    creative: { primary: "perceptual", secondary: "new_practice", desc: "创作始于感性直觉，经多次迭代后形成新的表达范式" },
+    political: { primary: "reflection", secondary: "rational", desc: "政治博弈需在反思历史教训基础上，形成更深刻的理性认识" }
+};
+
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { praxisData, praxisPatterns, praxisFlow };
+    module.exports = { praxisData, praxisPatterns, praxisFlow, praxisMatrix };
 }

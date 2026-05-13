@@ -149,13 +149,26 @@ const LLM_CONFIG = {
             name: 'Kimi',
             endpoint: 'https://api.kimi.com/coding/v1/chat/completions',
             models: ['kimi-k2.6'],
-            defaultModel: 'kimi-k2.6'
+            defaultModel: 'kimi-k2.6',
+            cors: false
         },
         deepseek: {
             name: 'DeepSeek',
             endpoint: 'https://api.deepseek.com/v1/chat/completions',
             models: ['deepseek-v4-pro'],
-            defaultModel: 'deepseek-v4-pro'
+            defaultModel: 'deepseek-v4-pro',
+            cors: false
+        },
+        openrouter: {
+            name: 'OpenRouter',
+            endpoint: 'https://openrouter.ai/api/v1/chat/completions',
+            models: ['moonshot-ai/kimi-k2.6', 'deepseek/deepseek-v4-pro'],
+            defaultModel: 'moonshot-ai/kimi-k2.6',
+            cors: true,
+            headers: {
+                'HTTP-Referer': window.location.href,
+                'X-Title': '易因分析'
+            }
         }
     }
 };
@@ -612,12 +625,14 @@ function switchView(view) {
         compare: '对比分析',
         gua: '六十四卦',
         pratitya: '十二因缘',
+        phenomenology: '现象学',
         praxis: '实践论',
-        contradiction: '矛盾论'
+        contradiction: '矛盾论',
+        stoic: '斯多葛'
     };
     document.getElementById('pageTitle').textContent = titles[view] || '易因';
 
-    const views = ['analyze', 'history', 'favorites', 'compare', 'gua', 'pratitya', 'praxis', 'contradiction'];
+    const views = ['analyze', 'history', 'favorites', 'compare', 'gua', 'pratitya', 'phenomenology', 'praxis', 'contradiction', 'stoic'];
     const currentEl = document.getElementById(state.currentView + 'View');
     
     views.forEach(v => {
@@ -640,8 +655,10 @@ function switchView(view) {
     if (view === 'compare') renderCompareView();
     if (view === 'gua') { renderGuaView(); setTimeout(() => window.YIYIN_ANIMATIONS?.animateGuaCards(), 100); }
     if (view === 'pratitya') renderPratityaView();
+    if (view === 'phenomenology') renderPhenomenologyView();
     if (view === 'praxis') renderPraxisView();
     if (view === 'contradiction') renderContradictionView();
+    if (view === 'stoic') renderStoicView();
 
     if (window.innerWidth <= 768) {
         document.getElementById('sidebar').classList.remove('open');
@@ -2111,6 +2128,85 @@ function saveLlmApiKey(key) {
     saveSettings();
 }
 
+async function streamLLM(prompt, onChunk, onDone, onError) {
+    const provider = state.settings.llmProvider || 'kimi';
+    const apiKey = state.settings.llmApiKey;
+    const config = LLM_CONFIG.providers[provider];
+
+    if (!apiKey) {
+        onError('请先输入 API Key');
+        return;
+    }
+
+    try {
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        };
+        if (config.headers) {
+            Object.assign(headers, config.headers);
+        }
+        const response = await fetch(config.endpoint, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+                model: state.settings.llmModel || config.defaultModel,
+                messages: [
+                    { role: 'system', content: '你是一位融合东西方哲学传统的深度分析师。' },
+                    { role: 'user', content: prompt }
+                ],
+                stream: true,
+                max_tokens: 4000
+            })
+        });
+
+        if (!response.ok) {
+            const errText = await response.text().catch(() => 'Unknown error');
+            onError(`API 错误 (${response.status}): ${errText}`);
+            return;
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // keep incomplete last line
+
+            for (const line of lines) {
+                if (line.trim() === '') continue;
+                if (line.startsWith('data: ')) {
+                    const data = line.slice(6);
+                    if (data === '[DONE]') {
+                        onDone();
+                        return;
+                    }
+                    try {
+                        const parsed = JSON.parse(data);
+                        const chunk = parsed.choices?.[0]?.delta?.content || '';
+                        if (chunk) onChunk(chunk);
+                    } catch (e) {
+                        // ignore parse errors
+                    }
+                }
+            }
+        }
+
+        onDone();
+    } catch (err) {
+        if (err.message?.includes('Load failed') || err.message?.includes('Failed to fetch')) {
+            onError(`网络连接失败。${config.cors === false ? 'Kimi/DeepSeek 官方 API 不支持浏览器直接调用，请切换到 OpenRouter 或使用后端代理。' : '请检查网络连接和 API Key。'}`);
+        } else {
+            onError(err.message || '网络请求失败');
+        }
+    }
+}
+
 async function testLlmConnection() {
     const provider = state.settings.llmProvider || 'kimi';
     const apiKey = state.settings.llmApiKey;
@@ -2121,12 +2217,16 @@ async function testLlmConnection() {
     showToast('正在测试连接...');
     try {
         const config = LLM_CONFIG.providers[provider];
+        const headers = {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+        };
+        if (config.headers) {
+            Object.assign(headers, config.headers);
+        }
         const response = await fetch(config.endpoint, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
+            headers,
             body: JSON.stringify({
                 model: state.settings.llmModel || config.defaultModel,
                 messages: [{ role: 'user', content: '你好' }],
@@ -2140,7 +2240,16 @@ async function testLlmConnection() {
             showToast(`连接失败: ${response.status}`, 'error');
         }
     } catch (err) {
-        showToast(`连接失败: ${err.message}`, 'error');
+        if (err.message?.includes('Load failed') || err.message?.includes('Failed to fetch')) {
+            const config = LLM_CONFIG.providers[provider];
+            if (config.cors === false) {
+                showToast('连接失败: CORS 限制。Kimi/DeepSeek 官方 API 不支持浏览器直接调用，请切换到 OpenRouter', 'error');
+            } else {
+                showToast('连接失败: 网络错误，请检查连接和 API Key', 'error');
+            }
+        } else {
+            showToast(`连接失败: ${err.message}`, 'error');
+        }
     }
 }
 
@@ -2429,6 +2538,65 @@ function showToast(msg, type = 'info') {
 // contradictionData, contradictionPatterns, contradictionMatrix — data/contradictionData.js
 
 // ════════════════════════════════════════
+// MATCH FUNCTIONS (gua, pratitya)
+// ════════════════════════════════════════
+
+function matchGua(scenario, type) {
+    const text = scenario.toLowerCase();
+    let scores = {};
+    for (let key in guaData) scores[key] = 0;
+    for (let gua in guaPatterns) {
+        guaPatterns[gua].forEach(kw => { if (text.includes(kw)) scores[gua] += 1; });
+    }
+    const typeBoost = {
+        personal: ['qian', 'kun', 'tai', 'pi', 'fu'],
+        relationship: ['xian', 'heng', 'jiaren', 'kui', 'tongren'],
+        business: ['dayou', 'sheng', 'yi2', 'sun', 'bi_gua'],
+        social: ['tongren', 'cui', 'bi_gua', 'song', 'shi'],
+        creative: ['qian', 'bi2', 'ge', 'feng', 'daxu'],
+        political: ['shi', 'song', 'guai', 'gou', 'mingyi']
+    };
+    if (type && typeBoost[type]) {
+        typeBoost[type].forEach(k => { if (scores[k] !== undefined) scores[k] += 0.5; });
+    }
+    let sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+    let primary = sorted[0][0];
+    return guaData[primary];
+}
+
+function matchPratitya(scenario, type) {
+    const text = scenario.toLowerCase();
+    let scores = {};
+    for (let key in pratityaData) scores[key] = 0;
+    for (let node in pratityaPatterns) {
+        pratityaPatterns[node].forEach(kw => { if (text.includes(kw)) scores[node] += 1; });
+    }
+    const typeBoost = {
+        personal: ['avidya', 'samskara', 'bhava', 'jati'],
+        relationship: ['trishna', 'upadana', 'sparsha', 'vedana'],
+        business: ['vijnana', 'samskara', 'bhava', 'namarupa'],
+        social: ['sadayatana', 'sparsha', 'vedana', 'trishna'],
+        creative: ['samskara', 'vijnana', 'namarupa', 'vedana'],
+        political: ['avidya', 'trishna', 'upadana', 'bhava']
+    };
+    if (type && typeBoost[type]) {
+        typeBoost[type].forEach(k => { if (scores[k] !== undefined) scores[k] += 0.5; });
+    }
+    let sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+    let primary = sorted[0][0];
+    let secondary = sorted[1] && sorted[1][1] > 0 ? sorted[1][0] : null;
+    return {
+        primary: { ...pratityaData[primary], key: primary },
+        secondary: secondary ? { ...pratityaData[secondary], key: secondary } : null,
+        chain: Object.keys(pratityaData).map(key => ({
+            key, data: pratityaData[key],
+            isPrimary: key === primary,
+            isSecondary: key === secondary
+        }))
+    };
+}
+
+// ════════════════════════════════════════
 // MARXIST ANALYSIS ENGINE v4.2
 // ════════════════════════════════════════
 
@@ -2449,6 +2617,11 @@ function matchPraxis(scenario, type) {
     };
     if (type && typeBoost[type]) {
         typeBoost[type].forEach(k => { if (scores[k] !== undefined) scores[k] += 0.5; });
+    }
+    if (type && praxisMatrix[type]) {
+        const matrix = praxisMatrix[type];
+        if (scores[matrix.primary] !== undefined) scores[matrix.primary] += 1;
+        if (scores[matrix.secondary] !== undefined) scores[matrix.secondary] += 0.5;
     }
     let sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
     let primary = sorted[0][0];
@@ -2504,6 +2677,11 @@ function matchPhenomenology(scenario, type) {
     };
     if (type && typeBoost[type]) {
         typeBoost[type].forEach(k => { if (scores[k] !== undefined) scores[k] += 0.5; });
+    }
+    if (type && phenomenologyMatrix[type]) {
+        const matrix = phenomenologyMatrix[type];
+        if (scores[matrix.primary] !== undefined) scores[matrix.primary] += 1;
+        if (scores[matrix.secondary] !== undefined) scores[matrix.secondary] += 0.5;
     }
     let sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
     let primary = sorted[0][0];
@@ -3388,6 +3566,7 @@ document.addEventListener('touchend', (e) => {
     document.querySelectorAll('.touch-active').forEach(el => el.classList.remove('touch-active'));
 }, { passive: true });
 function renderPraxisView(container) {
+    if (!container) container = document.getElementById('praxisView');
     if (!container) return;
     let html = `
     <div class="knowledge-section">
@@ -3409,7 +3588,7 @@ function renderPraxisView(container) {
                 ${Object.entries(praxisData).map(([key, stage]) => `
                     <div class="knowledge-card ${stage.color}">
                         <div class="knowledge-card-header">
-                            <span class="knowledge-card-num">${stage.order}</span>
+                            <span class="knowledge-card-num">${stage.stage}</span>
                             <h4>${stage.name}</h4>
                         </div>
                         <div class="knowledge-card-body">
@@ -3418,10 +3597,8 @@ function renderPraxisView(container) {
                             <p><strong>决策应用：</strong>${stage.inDecision}</p>
                             <p style="color:var(--success)"><strong>突破点：</strong>${stage.breakPoint}</p>
                             <div style="margin-top:12px;padding:10px;background:var(--bg-tertiary);border-radius:6px">
-                                <strong style="font-size:12px;color:var(--text-tertiary)">反思问题：</strong>
-                                <ul style="margin:6px 0 0 16px;padding:0;font-size:13px">
-                                    ${stage.questions.map(q => `<li style="margin-bottom:4px">${q}</li>`).join('')}
-                                </ul>
+                                <strong style="font-size:12px;color:var(--text-tertiary)">辩证法：</strong>
+                                <p style="margin:6px 0 0;font-size:13px">${stage.dialectic}</p>
                             </div>
                         </div>
                     </div>
@@ -3433,6 +3610,7 @@ function renderPraxisView(container) {
 }
 
 function renderContradictionView(container) {
+    if (!container) container = document.getElementById('contradictionView');
     if (!container) return;
     let html = `
     <div class="knowledge-section">
@@ -3448,7 +3626,7 @@ function renderContradictionView(container) {
                 ${Object.entries(contradictionData).map(([key, dim]) => `
                     <div class="knowledge-card ${dim.color}">
                         <div class="knowledge-card-header">
-                            <span class="knowledge-card-num">${dim.order}</span>
+                            <span class="knowledge-card-num">${dim.stage}</span>
                             <h4>${dim.name}</h4>
                         </div>
                         <div class="knowledge-card-body">

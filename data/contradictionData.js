@@ -14,6 +14,10 @@ const contradictionData = {
         inDecision: "认识到任何选择都伴随矛盾；不存在没有问题的完美方案",
         breakPoint: "正视矛盾而非回避；将矛盾视为发展的动力而非障碍",
         dialectic: "矛盾的普遍性——承认世界是充满矛盾的，这是客观现实",
+        questions: [
+            "我在回避哪些显而易见的矛盾？",
+            "如果矛盾是常态，我的应对策略是什么？"
+        ],
         color: "node-universality"
     },
     particularity: {
@@ -25,6 +29,10 @@ const contradictionData = {
         inDecision: "避免一刀切；分析当前情境的独特性，找到针对性的解法",
         breakPoint: "深入具体情境；拒绝教条主义和经验主义的照搬",
         dialectic: "具体问题具体分析——马克思主义活的灵魂",
+        questions: [
+            "这个情境有什么独特之处，不能套用通用解法？",
+            "如果换一个人/时间/地点，矛盾会不同吗？"
+        ],
         color: "node-particularity"
     },
     principal: {
@@ -36,6 +44,10 @@ const contradictionData = {
         inDecision: "识别当前最关键的问题；避免在次要矛盾上消耗过多资源",
         breakPoint: "抓主要矛盾、抓矛盾的主要方面；学会取舍和聚焦",
         dialectic: "两点论与重点论的统一——既看到全面，又抓住关键",
+        questions: [
+            "如果只能解决一个问题，应该是哪个？",
+            "我现在消耗最多精力的，是真正重要的吗？"
+        ],
         color: "node-principal"
     },
     transformation: {
@@ -47,6 +59,10 @@ const contradictionData = {
         inDecision: "创造条件促使矛盾向有利方向转化；预判矛盾转化的临界点",
         breakPoint: "把握转化的条件；在量变积累到临界点时主动推动质变",
         dialectic: "矛盾转化——坏事可以变好事，失败可以变教训，敌人可以变朋友",
+        questions: [
+            "这个『坏事』在什么条件下会变成『好事』？",
+            "我需要创造什么条件来推动矛盾转化？"
+        ],
         color: "node-transformation"
     }
 };
