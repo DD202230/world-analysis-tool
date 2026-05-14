@@ -315,13 +315,14 @@
             <div class="content" id="mainContent">
                 <!-- Analyze View -->
                 <div id="analyzeView">
-                    <div class="hero">
-                        <div class="hero-badge">AI 驱动 · 实时分析</div>
-                        <h1 class="hero-title">洞察<span>规律</span>· 理解<span>人性</span></h1>
-                        <p class="hero-subtitle">以易经六十四卦理解世界运行的规律，以佛教十二因缘洞察人性驱动的本源</p>
-                    </div>
+                    <div id="analyzeSetup">
+                        <div class="hero">
+                            <div class="hero-badge">AI 驱动 · 实时分析</div>
+                            <h1 class="hero-title">洞察<span>规律</span>· 理解<span>人性</span></h1>
+                            <p class="hero-subtitle">以易经六十四卦理解世界运行的规律，以佛教十二因缘洞察人性驱动的本源</p>
+                        </div>
 
-                    <div class="input-card">
+                        <div class="input-card">
                         <div class="input-header">
                             <div class="input-label">
                                 <svg class="input-label-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -464,8 +465,21 @@
                             </button>
                         </div>
                     </div>
+                    </div>
 
-                    <div class="results" id="results"></div>
+                    <div class="results" id="results">
+                        <div class="result-toolbar" id="resultToolbar" style="display:none">
+                            <div class="result-toolbar-title">深度分析结果</div>
+                            <button class="btn-secondary" onclick="showAnalyzeSetup()">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                </svg>
+                                新建分析
+                            </button>
+                        </div>
+                        <div class="result-streaming" id="resultStreaming"></div>
+                    </div>
                 </div>
 
                 <!-- History View -->
