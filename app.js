@@ -698,6 +698,7 @@ document.addEventListener('keydown', (e) => {
 // VIEW MANAGEMENT
 // ════════════════════════════════════════
 function switchView(view) {
+    const previousView = state.currentView;
     state.currentView = view;
 
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -719,7 +720,7 @@ function switchView(view) {
     document.getElementById('pageTitle').textContent = titles[view] || '易因';
 
     const views = ['analyze', 'history', 'favorites', 'compare', 'gua', 'pratitya', 'phenomenology', 'praxis', 'contradiction', 'stoic'];
-    const currentEl = document.getElementById(state.currentView + 'View');
+    const currentEl = document.getElementById(previousView + 'View');
     
     views.forEach(v => {
         const el = document.getElementById(v + 'View');
@@ -736,6 +737,7 @@ function switchView(view) {
         }
     });
 
+    if (view === 'analyze') showAnalyzeSetup();
     if (view === 'history') { renderHistoryView(); setTimeout(() => window.YIYIN_ANIMATIONS?.animateHistoryCards(), 100); }
     if (view === 'favorites') renderFavoritesView();
     if (view === 'compare') renderCompareView();
@@ -760,7 +762,13 @@ function switchView(view) {
     }
 
     if (window.innerWidth <= 768) {
-        document.getElementById('sidebar').classList.remove('open');
+        const sidebar = document.getElementById('sidebar');
+        sidebar.classList.remove('open');
+        const overlay = document.querySelector('.sidebar-overlay');
+        if (overlay) {
+            overlay.classList.remove('active');
+            setTimeout(() => overlay.remove(), 300);
+        }
     }
 }
 
