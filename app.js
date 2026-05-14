@@ -341,6 +341,7 @@ const state = {
     compareList: JSON.parse(localStorage.getItem('yiyin_compare') || '[]'),
     currentTags: [],
     draftId: null,
+    analysisDepth: 'standard',
     settings: {
         autoSave: true,
         animations: true,
@@ -354,8 +355,41 @@ const state = {
 };
 
 // ════════════════════════════════════════
-// SETTINGS PERSISTENCE
+// ANALYSIS DEPTH CONFIG
 // ════════════════════════════════════════
+const analysisDepthConfig = {
+    brief: {
+        detailLevel: 'brief',
+        maxActions: 3,
+        showLines: false,
+        showChangedGua: false
+    },
+    standard: {
+        detailLevel: 'standard',
+        maxActions: 5,
+        showLines: true,
+        showChangedGua: true
+    },
+    full: {
+        detailLevel: 'full',
+        maxActions: 7,
+        showLines: true,
+        showChangedGua: true
+    }
+};
+
+function getAnalysisDepth() {
+    return state.analysisDepth || 'standard';
+}
+
+function cycleAnalysisDepth() {
+    const depths = ['brief', 'standard', 'full'];
+    const current = getAnalysisDepth();
+    const next = depths[(depths.indexOf(current) + 1) % depths.length];
+    state.analysisDepth = next;
+    const labels = { brief: '简洁', standard: '标准', full: '深度' };
+    showToast(`分析深度已切换为「${labels[next]}」`, 'success');
+}
 async function loadSettings() {
     const saved = await dbGet('settings', 'app_settings');
     if (saved) {
@@ -377,7 +411,6 @@ function applySettings() {
 // DRAFT AUTO-SAVE
 // ════════════════════════════════════════
 let draftSaveTimeout;
-let livePreviewTimeout;
 
 // ════════════════════════════════════════
 // DEBOUNCE UTILITIES
@@ -394,21 +427,12 @@ const debouncedRenderHistoryView = debounce(renderHistoryView, 200);
 const debouncedRenderGuaView = debounce(renderGuaView, 200);
 function onScenarioInput() {
     updateCharCount();
-    clearTimeout(livePreviewTimeout);
     const text = document.getElementById('scenario').value.trim();
 
     // Analyze button highlight
     const btn = document.getElementById('analyzeBtn');
     if (btn) {
         btn.classList.toggle('has-content', text.length > 0);
-    }
-
-    if (text.length < 5) {
-        document.getElementById('livePreview').classList.remove('active');
-    } else {
-        livePreviewTimeout = setTimeout(() => {
-            updateLivePreview(text);
-        }, 300);
     }
 
     // Auto-save draft
@@ -458,7 +482,6 @@ async function loadDraft() {
             document.querySelectorAll('[data-type]').forEach(b => {
                 b.classList.toggle('selected', b.dataset.type === state.selectedType);
             });
-            updateLivePreview(d.text);
         }
     }
 }
@@ -468,8 +491,6 @@ function clearInput() {
     updateCharCount();
     const resultsEl = document.getElementById('results');
     if (resultsEl) resultsEl.classList.remove('active');
-    const livePreviewEl = document.getElementById('livePreview');
-    if (livePreviewEl) livePreviewEl.classList.remove('active');
     state.currentResult = null;
     state.currentTags = [];
     renderTags();
@@ -798,48 +819,6 @@ function renderTags() {
 function removeTag(tag) {
     state.currentTags = state.currentTags.filter(t => t !== tag);
     renderTags();
-}
-
-// ════════════════════════════════════════
-// LIVE PREVIEW
-// ════════════════════════════════════════
-function updateLivePreview(text) {
-    const preview = document.getElementById('livePreview');
-    const tagsEl = document.getElementById('liveTags');
-    const hintEl = document.getElementById('liveGuaHint');
-
-    const allKeywords = [];
-    for (let gua in guaPatterns) {
-        guaPatterns[gua].forEach(kw => {
-            if (text.includes(kw)) allKeywords.push({ word: kw, type: 'gua', gua });
-        });
-    }
-    for (let node in pratityaPatterns) {
-        pratityaPatterns[node].forEach(kw => {
-            if (text.includes(kw)) allKeywords.push({ word: kw, type: 'pratitya', node });
-        });
-    }
-
-    if (allKeywords.length === 0) {
-        preview.classList.remove('active');
-        return;
-    }
-
-    preview.classList.add('active');
-
-    const uniqueKeywords = allKeywords.slice(0, 8);
-    tagsEl.innerHTML = uniqueKeywords.map(k =>
-        `<span class="live-tag match">${escapeHtml(k.word)}</span>`
-    ).join('');
-
-    const gua = matchGua(text, state.selectedType);
-    hintEl.innerHTML = `
-        <div class="live-gua-symbol">${gua.symbol}</div>
-        <div class="live-gua-info">
-            <div class="live-gua-name">${gua.fullname}</div>
-            <div class="live-gua-desc">${gua.phase} · ${gua.nature}</div>
-        </div>
-    `;
 }
 
 // ════════════════════════════════════════
@@ -2400,19 +2379,7 @@ function openImportModal() {
 }
 
 // ════════════════════════════════════════
-// ANALYSIS DEPTH
-// ════════════════════════════════════════
-function cycleAnalysisDepth() {
-    const depths = ['concise', 'standard', 'deep'];
-    const labels = { concise: '简洁', standard: '标准', deep: '深度' };
-    const current = state.analysisDepth || 'standard';
-    const next = depths[(depths.indexOf(current) + 1) % depths.length];
-    state.analysisDepth = next;
-    showToast(`分析深度：${labels[next]}`);
-}
-
-// ════════════════════════════════════════
-// URL SHARE HANDLING
+// ANALYSIS DEPTH (deprecated — now defined at top of file)
 // ════════════════════════════════════════
 function handleShareUrl() {
     const hash = window.location.hash;
@@ -2812,6 +2779,39 @@ function matchStoic(scenario, type) {
     };
 }
 
+// ════════════════════════════════════════
+// MOVING YAO & CHANGED GUA
+// ════════════════════════════════════════
+function determineMovingYao(scenario) {
+    // Deterministic moving yao based on scenario text hash
+    let hash = 0;
+    for (let i = 0; i < scenario.length; i++) {
+        hash = ((hash << 5) - hash) + scenario.charCodeAt(i);
+        hash |= 0;
+    }
+    return Math.abs(hash) % 6 + 1; // 1-6
+}
+
+function calculateChangedGua(gua, movingYao) {
+    if (!gua || !gua.lines || !movingYao) return null;
+    // Flip the moving yao line: yang (9) -> yin (6), yin (6) -> yang (9)
+    const changedLines = gua.lines.map((line, idx) => {
+        if (idx + 1 === movingYao) {
+            return line === 9 ? 6 : 9;
+        }
+        return line;
+    });
+    // Find matching gua in guaData by lines
+    for (let key in guaData) {
+        const candidate = guaData[key];
+        if (candidate.lines && candidate.lines.length === 6) {
+            const match = candidate.lines.every((l, i) => l === changedLines[i]);
+            if (match) return candidate;
+        }
+    }
+    return null;
+}
+
 function crossAnalysis4D(gua, pratitya, praxis, contradiction, phenomenology, stoic) {
     const key = `${gua.name}-${pratitya.primary.key}-${praxis.primary.key}-${contradiction.primary.key}-${phenomenology ? phenomenology.primary.key : 'none'}-${stoic ? stoic.primary.key : 'none'}`;
     const templates = [
@@ -2978,55 +2978,63 @@ function analyze() {
         btn.innerHTML = '<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div> 分析中...';
     }
     setTimeout(() => {
-        // ════════════════════════════════════════
-        // 三类哲学分工分析
-        // ════════════════════════════════════════
-        
-        // 分析层：现象学 — 分析当前情境是什么
-        const phenomenology = matchPhenomenology(scenario, state.selectedType);
-        
-        // 推演层：易经 + 十二因缘 — 推演变化规律
-        const gua = matchGua(scenario, state.selectedType);
-        const pratitya = matchPratitya(scenario, state.selectedType);
-        const movingYao = determineMovingYao(scenario);
-        const changedGua = calculateChangedGua(gua, movingYao);
-        
-        // 指导层：马克思主义 + 斯多葛 — 指导如何行动
-        const praxis = matchPraxis(scenario, state.selectedType);
-        const contradiction = matchContradiction(scenario, state.selectedType);
-        const stoic = matchStoic(scenario, state.selectedType);
-        
-        // 交叉分析（推演层 + 指导层 + 分析层）
-        const cross = crossAnalysis4D(gua, pratitya, praxis, contradiction, phenomenology, stoic);
-        
-        // 行动建议（综合三层）
-        const actions = generateActions(gua, pratitya, changedGua);
-        const praxisActions = generatePraxisActions(praxis, analysisDepthConfig[getAnalysisDepth()]);
-        const contraActions = generateContradictionActions(contradiction, analysisDepthConfig[getAnalysisDepth()]);
-        const stoicActions = generateStoicActions(stoic, analysisDepthConfig[getAnalysisDepth()]);
-        
-        const result = { 
-            phenomenology,  // 分析层
-            gua, pratitya, changedGua,  // 推演层
-            praxis, contradiction, stoic,  // 指导层
-            cross, actions, praxisActions, contraActions, stoicActions,
-            scenario, timestamp: Date.now(), movingYao
-        };
-        state.currentResult = result;
-        saveToHistory(result);
-        if (state.settings.llmMode && state.settings.llmApiKey) {
-            renderResult(result, true);
-            renderLlmAnalysis(result);
-        } else {
-            renderResult(result, false);
-        }
-        if (window.YIYIN_ANIMATIONS) {
-            window.YIYIN_ANIMATIONS.setAnalyzeButtonLoading(false);
-            setTimeout(() => window.YIYIN_ANIMATIONS.animateResultCards(), 50);
-        } else {
-            const btn = document.getElementById('analyzeBtn');
-            btn.disabled = false;
-            btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> 开始分析';
+        try {
+            // ════════════════════════════════════════
+            // 三类哲学分工分析
+            // ════════════════════════════════════════
+            
+            // 分析层：现象学 — 分析当前情境是什么
+            const phenomenology = matchPhenomenology(scenario, state.selectedType);
+            
+            // 推演层：易经 + 十二因缘 — 推演变化规律
+            const gua = matchGua(scenario, state.selectedType);
+            const pratitya = matchPratitya(scenario, state.selectedType);
+            const movingYao = determineMovingYao(scenario);
+            const changedGua = calculateChangedGua(gua, movingYao);
+            
+            // 指导层：马克思主义 + 斯多葛 — 指导如何行动
+            const praxis = matchPraxis(scenario, state.selectedType);
+            const contradiction = matchContradiction(scenario, state.selectedType);
+            const stoic = matchStoic(scenario, state.selectedType);
+            
+            // 交叉分析（推演层 + 指导层 + 分析层）
+            const cross = crossAnalysis4D(gua, pratitya, praxis, contradiction, phenomenology, stoic);
+            
+            // 行动建议（综合三层）
+            const actions = generateActions(gua, pratitya, changedGua);
+            const praxisActions = generatePraxisActions(praxis, analysisDepthConfig[getAnalysisDepth()]);
+            const contraActions = generateContradictionActions(contradiction, analysisDepthConfig[getAnalysisDepth()]);
+            const stoicActions = generateStoicActions(stoic, analysisDepthConfig[getAnalysisDepth()]);
+            
+            const result = { 
+                phenomenology,  // 分析层
+                gua, pratitya, changedGua,  // 推演层
+                praxis, contradiction, stoic,  // 指导层
+                cross, actions, praxisActions, contraActions, stoicActions,
+                scenario, timestamp: Date.now(), movingYao
+            };
+            state.currentResult = result;
+            saveToHistory(result);
+            if (state.settings.llmMode && state.settings.llmApiKey) {
+                renderResult(result, true);
+                renderLlmAnalysis(result);
+            } else {
+                renderResult(result, false);
+            }
+        } catch (err) {
+            console.error('分析失败:', err);
+            showToast('分析出错: ' + err.message, 'error');
+        } finally {
+            if (window.YIYIN_ANIMATIONS) {
+                window.YIYIN_ANIMATIONS.setAnalyzeButtonLoading(false);
+                setTimeout(() => window.YIYIN_ANIMATIONS.animateResultCards(), 50);
+            } else {
+                const btn = document.getElementById('analyzeBtn');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> 开始分析';
+                }
+            }
         }
     }, 800);
 }
