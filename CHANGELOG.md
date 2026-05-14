@@ -1,5 +1,16 @@
 # 易因 · 世界分析引擎 — 更新日志
 
+## v4.5.3 (2026-05-15) — 知识页面卡片统一配色与布局
+
+### 配色统一
+- **删除各视图独立配色**：移除现象学（青色）、实践论（红色）、矛盾论（红色）、斯多葛（绿色）等独立颜色主题
+- **统一为系统 accent 金色系**：所有知识视图的 `knowledge-icon`、`knowledge-header`、`knowledge-card` 统一使用 `#c9a96e` 金色渐变
+- **统一 card num 样式**：`knowledge-card-num` 使用 `var(--surface-subtle)` 背景 + `var(--accent-400)` 文字
+
+### 布局优化
+- **卡片宽度自适应**：`.knowledge-grid` 使用 `repeat(auto-fill, minmax(280px, 1fr))`，从左到右、从上到下铺满屏幕
+- **统一 hover 效果**：所有卡片 hover 时统一使用 `border-color: var(--border-accent)` + `box-shadow: var(--shadow-md)`
+
 ## v4.5.2 (2026-05-15) — Markdown 解析修复
 
 ### 格式解析优化

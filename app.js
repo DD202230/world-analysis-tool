@@ -3738,7 +3738,7 @@ function renderPraxisView(container) {
     let html = `
     <div class="knowledge-section">
         <div class="knowledge-header">
-            <div class="knowledge-icon" style="background:linear-gradient(135deg,#c0392b,#8e44ad)">实</div>
+            <div class="knowledge-icon" style="background:linear-gradient(135deg,#c9a96e,#a08450)">实</div>
             <div class="knowledge-title">
                 <h2>实践论 · 认识发展五阶段</h2>
                 <p>从感性认识到理性认识，再到实践检验的螺旋上升</p>
@@ -3753,7 +3753,7 @@ function renderPraxisView(container) {
             </div>
             <div class="knowledge-grid">
                 ${Object.entries(praxisData).map(([key, stage]) => `
-                    <div class="knowledge-card ${stage.color}">
+                    <div class="knowledge-card">
                         <div class="knowledge-card-header">
                             <span class="knowledge-card-num">${stage.stage}</span>
                             <h4>${stage.name}</h4>
@@ -3782,7 +3782,7 @@ function renderContradictionView(container) {
     let html = `
     <div class="knowledge-section">
         <div class="knowledge-header">
-            <div class="knowledge-icon" style="background:linear-gradient(135deg,#e74c3c,#c0392b)">矛</div>
+            <div class="knowledge-icon" style="background:linear-gradient(135deg,#c9a96e,#a08450)">矛</div>
             <div class="knowledge-title">
                 <h2>矛盾论 · 结构动力学</h2>
                 <p>主要矛盾决定事物性质，矛盾双方相互转化</p>
@@ -3791,7 +3791,7 @@ function renderContradictionView(container) {
         <div class="knowledge-content">
             <div class="knowledge-grid">
                 ${Object.entries(contradictionData).map(([key, dim]) => `
-                    <div class="knowledge-card ${dim.color}">
+                    <div class="knowledge-card">
                         <div class="knowledge-card-header">
                             <span class="knowledge-card-num">${dim.stage}</span>
                             <h4>${dim.name}</h4>
@@ -3836,7 +3836,7 @@ function renderPhenomenologyView(container) {
     let html = `
     <div class="knowledge-section">
         <div class="knowledge-header">
-            <div class="knowledge-icon" style="background:linear-gradient(135deg,#00bcd4,#3f51b5)">现</div>
+            <div class="knowledge-icon" style="background:linear-gradient(135deg,#c9a96e,#a08450)">现</div>
             <div class="knowledge-title">
                 <h2>现象学 · 回到事物本身</h2>
                 <p>悬置预设，直面经验原貌，在意识活动中揭示意义构造</p>
@@ -3851,7 +3851,7 @@ function renderPhenomenologyView(container) {
             </div>
             <div class="knowledge-grid">
                 ${Object.entries(phenomenologyData).map(([key, dim]) => `
-                    <div class="knowledge-card ${dim.color}">
+                    <div class="knowledge-card">
                         <div class="knowledge-card-header">
                             <span class="knowledge-card-num">${dim.order}</span>
                             <h4>${dim.name}</h4>
@@ -3882,7 +3882,7 @@ function renderStoicView(container) {
     let html = `
     <div class="knowledge-section">
         <div class="knowledge-header">
-            <div class="knowledge-icon" style="background:linear-gradient(135deg,#27ae60,#2ecc71)">斯</div>
+            <div class="knowledge-icon" style="background:linear-gradient(135deg,#c9a96e,#a08450)">斯</div>
             <div class="knowledge-title">
                 <h2>斯多葛学派 · 可控之事</h2>
                 <p>区分可控与不可控，在限制中寻找自由，以终为始地行动</p>
@@ -3891,7 +3891,7 @@ function renderStoicView(container) {
         <div class="knowledge-content">
             <div class="knowledge-grid">
                 ${Object.entries(stoicData).map(([key, practice]) => `
-                    <div class="knowledge-card ${practice.color}">
+                    <div class="knowledge-card">
                         <div class="knowledge-card-header">
                             <span class="knowledge-card-num">${practice.order}</span>
                             <h4>${practice.name}</h4>

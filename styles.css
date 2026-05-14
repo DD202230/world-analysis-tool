@@ -3513,307 +3513,80 @@ textarea:focus-visible {
     font-weight: 500;
 }
 
-/* ── 现象学 · 意识之光 ── */
-.phenomenology-view .knowledge-icon { box-shadow: 0 0 20px rgba(0,188,212,0.2); }
-.phenomenology-view .knowledge-header { border-color: rgba(0,188,212,0.15); }
 
-.phenomenology-view .knowledge-card.cyan {
-    border-color: rgba(0,188,212,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(0,188,212,0.03));
-}
-.phenomenology-view .knowledge-card.cyan .knowledge-card-num {
-    background: rgba(0,188,212,0.15); color: #00bcd4;
-}
-.phenomenology-view .knowledge-card.cyan:hover {
-    border-color: rgba(0,188,212,0.4);
-    box-shadow: 0 4px 16px rgba(0,188,212,0.08);
-}
+/* ════════════════════════════════════════
+   KNOWLEDGE VIEW — UNIFIED SYSTEM THEME
+   ════════════════════════════════════════ */
 
-.phenomenology-view .knowledge-card.blue {
-    border-color: rgba(63,81,181,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(63,81,181,0.03));
-}
-.phenomenology-view .knowledge-card.blue .knowledge-card-num {
-    background: rgba(63,81,181,0.15); color: #5c6bc0;
-}
-.phenomenology-view .knowledge-card.blue:hover {
-    border-color: rgba(63,81,181,0.4);
-    box-shadow: 0 4px 16px rgba(63,81,181,0.08);
+/* All knowledge views share the same system accent theme */
+.gua-view .knowledge-icon,
+.pratitya-view .knowledge-icon,
+.phenomenology-view .knowledge-icon,
+.praxis-view .knowledge-icon,
+.contradiction-view .knowledge-icon,
+.stoic-view .knowledge-icon {
+    box-shadow: 0 0 20px rgba(201,169,110,0.15);
 }
 
-.phenomenology-view .knowledge-card.indigo {
-    border-color: rgba(92,107,192,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(92,107,192,0.03));
-}
-.phenomenology-view .knowledge-card.indigo .knowledge-card-num {
-    background: rgba(92,107,192,0.15); color: #7986cb;
-}
-.phenomenology-view .knowledge-card.indigo:hover {
-    border-color: rgba(92,107,192,0.4);
-    box-shadow: 0 4px 16px rgba(92,107,192,0.08);
+.gua-view .knowledge-header,
+.pratitya-view .knowledge-header,
+.phenomenology-view .knowledge-header,
+.praxis-view .knowledge-header,
+.contradiction-view .knowledge-header,
+.stoic-view .knowledge-header {
+    border-color: var(--border-default);
 }
 
-.phenomenology-view .knowledge-card.violet {
-    border-color: rgba(126,87,194,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(126,87,194,0.03));
-}
-.phenomenology-view .knowledge-card.violet .knowledge-card-num {
-    background: rgba(126,87,194,0.15); color: #9575cd;
-}
-.phenomenology-view .knowledge-card.violet:hover {
-    border-color: rgba(126,87,194,0.4);
-    box-shadow: 0 4px 16px rgba(126,87,194,0.08);
+/* Unified knowledge card */
+.knowledge-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    padding: var(--space-5);
+    transition: all var(--transition-fast);
 }
 
-.phenomenology-view .knowledge-card.purple {
-    border-color: rgba(171,71,188,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(171,71,188,0.03));
-}
-.phenomenology-view .knowledge-card.purple .knowledge-card-num {
-    background: rgba(171,71,188,0.15); color: #ba68c8;
-}
-.phenomenology-view .knowledge-card.purple:hover {
-    border-color: rgba(171,71,188,0.4);
-    box-shadow: 0 4px 16px rgba(171,71,188,0.08);
+.knowledge-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-accent);
+    box-shadow: var(--shadow-md);
 }
 
-/* 现象学 chain-display */
-.phenomenology-view .chain-display {
-    background: linear-gradient(90deg, rgba(0,188,212,0.05), rgba(126,87,194,0.05));
-    border-color: rgba(0,188,212,0.1);
+/* Unified card num */
+.knowledge-card-num {
+    background: var(--surface-subtle);
+    color: var(--accent-400);
 }
 
-/* ── 实践论 · 认识之火 ── */
-.praxis-view .knowledge-icon { box-shadow: 0 0 20px rgba(192,57,43,0.2); }
-.praxis-view .knowledge-header { border-color: rgba(192,57,43,0.15); }
-
-.praxis-view .knowledge-card.node-perceptual {
-    border-color: rgba(231,76,60,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(231,76,60,0.03));
-}
-.praxis-view .knowledge-card.node-perceptual .knowledge-card-num {
-    background: rgba(231,76,60,0.15); color: #e74c3c;
-}
-.praxis-view .knowledge-card.node-perceptual:hover {
-    border-color: rgba(231,76,60,0.4);
-    box-shadow: 0 4px 16px rgba(231,76,60,0.08);
-}
-
-.praxis-view .knowledge-card.node-rational {
-    border-color: rgba(192,57,43,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(192,57,43,0.03));
-}
-.praxis-view .knowledge-card.node-rational .knowledge-card-num {
-    background: rgba(192,57,43,0.15); color: #c0392b;
-}
-.praxis-view .knowledge-card.node-rational:hover {
-    border-color: rgba(192,57,43,0.4);
-    box-shadow: 0 4px 16px rgba(192,57,43,0.08);
-}
-
-.praxis-view .knowledge-card.node-practice {
-    border-color: rgba(142,68,173,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(142,68,173,0.03));
-}
-.praxis-view .knowledge-card.node-practice .knowledge-card-num {
-    background: rgba(142,68,173,0.15); color: #8e44ad;
-}
-.praxis-view .knowledge-card.node-practice:hover {
-    border-color: rgba(142,68,173,0.4);
-    box-shadow: 0 4px 16px rgba(142,68,173,0.08);
-}
-
-.praxis-view .knowledge-card.node-reflection {
-    border-color: rgba(211,84,0,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(211,84,0,0.03));
-}
-.praxis-view .knowledge-card.node-reflection .knowledge-card-num {
-    background: rgba(211,84,0,0.15); color: #d35400;
-}
-.praxis-view .knowledge-card.node-reflection:hover {
-    border-color: rgba(211,84,0,0.4);
-    box-shadow: 0 4px 16px rgba(211,84,0,0.08);
-}
-
-.praxis-view .knowledge-card.node-new-practice {
-    border-color: rgba(39,174,96,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(39,174,96,0.03));
-}
-.praxis-view .knowledge-card.node-new-practice .knowledge-card-num {
-    background: rgba(39,174,96,0.15); color: #27ae60;
-}
-.praxis-view .knowledge-card.node-new-practice:hover {
-    border-color: rgba(39,174,96,0.4);
-    box-shadow: 0 4px 16px rgba(39,174,96,0.08);
-}
-
-.praxis-view .chain-display {
-    background: linear-gradient(90deg, rgba(231,76,60,0.05), rgba(39,174,96,0.05));
-    border-color: rgba(192,57,43,0.1);
-}
-
-/* ── 矛盾论 · 辩证之锋 ── */
-.contradiction-view .knowledge-icon { box-shadow: 0 0 20px rgba(231,76,60,0.2); }
-.contradiction-view .knowledge-header { border-color: rgba(231,76,60,0.15); }
-
-.contradiction-view .knowledge-card.node-universality {
-    border-color: rgba(231,76,60,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(231,76,60,0.03));
-}
-.contradiction-view .knowledge-card.node-universality .knowledge-card-num {
-    background: rgba(231,76,60,0.15); color: #e74c3c;
-}
-.contradiction-view .knowledge-card.node-universality:hover {
-    border-color: rgba(231,76,60,0.4);
-    box-shadow: 0 4px 16px rgba(231,76,60,0.08);
-}
-
-.contradiction-view .knowledge-card.node-particularity {
-    border-color: rgba(230,126,34,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(230,126,34,0.03));
-}
-.contradiction-view .knowledge-card.node-particularity .knowledge-card-num {
-    background: rgba(230,126,34,0.15); color: #e67e22;
-}
-.contradiction-view .knowledge-card.node-particularity:hover {
-    border-color: rgba(230,126,34,0.4);
-    box-shadow: 0 4px 16px rgba(230,126,34,0.08);
-}
-
-.contradiction-view .knowledge-card.node-principal {
-    border-color: rgba(192,57,43,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(192,57,43,0.03));
-}
-.contradiction-view .knowledge-card.node-principal .knowledge-card-num {
-    background: rgba(192,57,43,0.15); color: #c0392b;
-}
-.contradiction-view .knowledge-card.node-principal:hover {
-    border-color: rgba(192,57,43,0.4);
-    box-shadow: 0 4px 16px rgba(192,57,43,0.08);
-}
-
-.contradiction-view .knowledge-card.node-transformation {
-    border-color: rgba(155,89,182,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(155,89,182,0.03));
-}
-.contradiction-view .knowledge-card.node-transformation .knowledge-card-num {
-    background: rgba(155,89,182,0.15); color: #9b59b6;
-}
-.contradiction-view .knowledge-card.node-transformation:hover {
-    border-color: rgba(155,89,182,0.4);
-    box-shadow: 0 4px 16px rgba(155,89,182,0.08);
-}
-
-.contradiction-view .chain-display {
-    background: linear-gradient(90deg, rgba(231,76,60,0.05), rgba(155,89,182,0.05));
-    border-color: rgba(231,76,60,0.1);
-}
-
-/* ── 斯多葛 · 宁静之绿 ── */
-.stoic-view .knowledge-icon { box-shadow: 0 0 20px rgba(39,174,96,0.2); }
-.stoic-view .knowledge-header { border-color: rgba(39,174,96,0.15); }
-
-.stoic-view .knowledge-card.emerald {
-    border-color: rgba(46,204,113,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(46,204,113,0.03));
-}
-.stoic-view .knowledge-card.emerald .knowledge-card-num {
-    background: rgba(46,204,113,0.15); color: #2ecc71;
-}
-.stoic-view .knowledge-card.emerald:hover {
-    border-color: rgba(46,204,113,0.4);
-    box-shadow: 0 4px 16px rgba(46,204,113,0.08);
-}
-
-.stoic-view .knowledge-card.teal {
-    border-color: rgba(26,188,156,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(26,188,156,0.03));
-}
-.stoic-view .knowledge-card.teal .knowledge-card-num {
-    background: rgba(26,188,156,0.15); color: #1abc9c;
-}
-.stoic-view .knowledge-card.teal:hover {
-    border-color: rgba(26,188,156,0.4);
-    box-shadow: 0 4px 16px rgba(26,188,156,0.08);
-}
-
-.stoic-view .knowledge-card.green {
-    border-color: rgba(39,174,96,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(39,174,96,0.03));
-}
-.stoic-view .knowledge-card.green .knowledge-card-num {
-    background: rgba(39,174,96,0.15); color: #27ae60;
-}
-.stoic-view .knowledge-card.green:hover {
-    border-color: rgba(39,174,96,0.4);
-    box-shadow: 0 4px 16px rgba(39,174,96,0.08);
-}
-
-.stoic-view .knowledge-card.lime {
-    border-color: rgba(174,213,129,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(174,213,129,0.03));
-}
-.stoic-view .knowledge-card.lime .knowledge-card-num {
-    background: rgba(174,213,129,0.15); color: #aed581;
-}
-.stoic-view .knowledge-card.lime:hover {
-    border-color: rgba(174,213,129,0.4);
-    box-shadow: 0 4px 16px rgba(174,213,129,0.08);
-}
-
-.stoic-view .knowledge-card.spring {
-    border-color: rgba(102,187,106,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(102,187,106,0.03));
-}
-.stoic-view .knowledge-card.spring .knowledge-card-num {
-    background: rgba(102,187,106,0.15); color: #66bb6a;
-}
-.stoic-view .knowledge-card.spring:hover {
-    border-color: rgba(102,187,106,0.4);
-    box-shadow: 0 4px 16px rgba(102,187,106,0.08);
-}
-
-.stoic-view .knowledge-card.forest {
-    border-color: rgba(67,160,71,0.2);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(67,160,71,0.03));
-}
-.stoic-view .knowledge-card.forest .knowledge-card-num {
-    background: rgba(67,160,71,0.15); color: #43a047;
-}
-.stoic-view .knowledge-card.forest:hover {
-    border-color: rgba(67,160,71,0.4);
-    box-shadow: 0 4px 16px rgba(67,160,71,0.08);
-}
-
+/* Unified chain display */
+.gua-view .chain-display,
+.pratitya-view .chain-display,
+.phenomenology-view .chain-display,
+.praxis-view .chain-display,
+.contradiction-view .chain-display,
 .stoic-view .chain-display {
-    background: linear-gradient(90deg, rgba(46,204,113,0.05), rgba(26,188,156,0.05));
-    border-color: rgba(39,174,96,0.1);
+    background: var(--bg-tertiary);
+    border-color: var(--border-subtle);
 }
 
-/* ── 十二因缘 · 轮回之色 ── */
-.pratitya-view .knowledge-icon { box-shadow: 0 0 20px rgba(201,169,110,0.2); }
-.pratitya-view .knowledge-header { border-color: rgba(201,169,110,0.15); }
+/* ════════════════════════════════════════
+   KNOWLEDGE GRID — FULL WIDTH LAYOUT
+   ════════════════════════════════════════ */
 
-.pratitya-view .knowledge-card {
-    border-color: rgba(201,169,110,0.15);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(201,169,110,0.02));
-}
-.pratitya-view .knowledge-card:hover {
-    border-color: rgba(201,169,110,0.35);
-    box-shadow: 0 4px 16px rgba(201,169,110,0.06);
+.knowledge-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: var(--space-4);
 }
 
-/* ── 六十四卦 · 阴阳之韵 ── */
-.gua-view .knowledge-icon { box-shadow: 0 0 20px rgba(201,169,110,0.2); }
-.gua-view .knowledge-header { border-color: rgba(201,169,110,0.15); }
+/* ════════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════════ */
 
-.gua-view .knowledge-card {
-    border-color: rgba(201,169,110,0.15);
-    background: linear-gradient(135deg, var(--bg-elevated), rgba(201,169,110,0.02));
-}
-.gua-view .knowledge-card:hover {
-    border-color: rgba(201,169,110,0.35);
-    box-shadow: 0 4px 16px rgba(201,169,110,0.06);
+@media (max-width: 768px) {
+    .knowledge-grid { grid-template-columns: 1fr; }
+    .knowledge-header { flex-direction: column; text-align: center; }
+    .knowledge-icon { margin: 0 auto; }
 }
 
 /* ── 响应式 ── */
