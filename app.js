@@ -998,7 +998,29 @@ function loadHistory(id) {
     const item = state.history.find(h => h.id === id);
     if (item && item.fullResult) {
         state.currentResult = item.fullResult;
-        showSavedAnalysisModal(item.fullResult);
+        // Switch to analyze view without calling switchView to avoid flicker
+        state.currentView = 'analyze';
+        document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+        const navItem = document.querySelector('[data-nav="analyze"]');
+        if (navItem) navItem.classList.add('active');
+        document.getElementById('pageTitle').textContent = '新建分析';
+        const views = ['analyze', 'history', 'favorites', 'compare', 'gua', 'pratitya', 'phenomenology', 'praxis', 'contradiction', 'stoic'];
+        views.forEach(v => {
+            const el = document.getElementById(v + 'View');
+            if (el) el.style.display = v === 'analyze' ? 'block' : 'none';
+        });
+        showAnalyzeResult();
+        renderSavedResult(item.fullResult);
+    }
+}
+
+function renderSavedResult(result) {
+    const streamingEl = document.getElementById('resultStreaming');
+    if (!streamingEl) return;
+    if (result.llmAnalysis) {
+        streamingEl.innerHTML = markdownToHtml(result.llmAnalysis);
+    } else {
+        streamingEl.innerHTML = '<div class="streaming-placeholder">该记录暂无深度分析内容</div>';
     }
 }
 
@@ -3021,11 +3043,76 @@ function analyze() {
         return;
     }
 
-    // Open analysis modal immediately with LLM streaming
-    showAnalysisModal(scenario, state.selectedDim, state.selectedType);
+    // Hide setup, show results area, start LLM streaming
+    showAnalyzeResult();
+    streamLlmToResults(scenario, state.selectedDim, state.selectedType);
 
-    // Run local analysis in background for structured result cards
+    // Run local analysis in background for saving
     setTimeout(() => runLocalAnalysis(scenario), 50);
+}
+
+function showAnalyzeResult() {
+    const setup = document.getElementById('analyzeSetup');
+    const results = document.getElementById('results');
+    const toolbar = document.getElementById('resultToolbar');
+    if (setup) setup.classList.add('hidden');
+    if (results) results.classList.add('active');
+    if (toolbar) toolbar.style.display = 'flex';
+}
+
+function showAnalyzeSetup() {
+    const setup = document.getElementById('analyzeSetup');
+    const results = document.getElementById('results');
+    const toolbar = document.getElementById('resultToolbar');
+    const streaming = document.getElementById('resultStreaming');
+    if (setup) setup.classList.remove('hidden');
+    if (results) results.classList.remove('active');
+    if (toolbar) toolbar.style.display = 'none';
+    if (streaming) streaming.innerHTML = '';
+    // Abort any ongoing LLM request
+    if (currentLlmAbortController) {
+        currentLlmAbortController.abort();
+        currentLlmAbortController = null;
+    }
+}
+
+function streamLlmToResults(scenario, dim, type) {
+    const streamingEl = document.getElementById('resultStreaming');
+    if (!streamingEl) return;
+
+    streamingEl.innerHTML = '<div class="streaming-placeholder">正在连接 AI 分析师...</div>';
+
+    const prompt = buildUserPrompt(scenario, dim, type);
+    let fullText = '';
+    let isFirstChunk = true;
+
+    streamLLM(prompt,
+        (chunk) => {
+            if (isFirstChunk) {
+                streamingEl.innerHTML = '';
+                isFirstChunk = false;
+            }
+            fullText += chunk;
+            streamingEl.innerHTML = markdownToHtml(fullText);
+            streamingEl.scrollTop = streamingEl.scrollHeight;
+        },
+        () => {
+            if (!state.currentResult) state.currentResult = {};
+            state.currentResult.llmAnalysis = fullText;
+            state.currentResult.scenario = scenario;
+            showToast('深度分析完成', 'success');
+        },
+        (error) => {
+            streamingEl.innerHTML = `<div style="color:var(--danger);padding:16px">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px">
+                    <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                ${escapeHtml(String(error))}
+                <br><br>
+                <button class="header-btn" onclick="retryAnalysis()">重试</button>
+            </div>`;
+        }
+    );
 }
 
 function runLocalAnalysis(scenario) {
@@ -3236,7 +3323,7 @@ function showSavedAnalysisModal(result) {
 function retryAnalysis() {
     const scenario = document.getElementById('scenario').value.trim();
     if (!scenario) return;
-    showAnalysisModal(scenario, state.selectedDim, state.selectedType);
+    streamLlmToResults(scenario, state.selectedDim, state.selectedType);
 }
 
 function copyAnalysisResult() {
