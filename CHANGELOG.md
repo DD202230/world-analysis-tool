@@ -1,5 +1,16 @@
 # 易因 · 世界分析引擎 — 更新日志
 
+## v4.5.4 (2026-05-15) — 知识视图布局修复：嵌套 Grid 清理与全宽突破
+
+### Bug 修复
+- **修复四大知识视图内容错乱**：移除 HTML 中 `#phenomenologyGrid`、`#praxisGrid`、`#contradictionGrid`、`#stoicGrid` 外层的 `knowledge-grid` 类，消除 JS 渲染时产生的嵌套 Grid 问题
+- **卡片最小宽度保护**：`.knowledge-card` 添加 `min-width: 280px; max-width: 100%`，防止内容挤压变形
+
+### 布局优化
+- **知识视图全宽突破**：`.content` 恢复 `max-width: 760px`（首页观感不变），知识视图通过负 margin 计算占满 `100vw - sidebar` 主区域
+- **自适应列数**：`.knowledge-grid` 使用 `repeat(auto-fill, minmax(280px, 1fr))`，大屏 4-5 列，小屏自动降级
+- **移动端单列**：560px 以下自动切换单列布局
+
 ## v4.5.3 (2026-05-15) — 知识页面卡片统一配色与布局
 
 ### 配色统一

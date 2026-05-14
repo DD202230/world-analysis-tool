@@ -514,6 +514,33 @@ body {
 }
 
 /* ════════════════════════════════════════
+   KNOWLEDGE VIEWS — FULL WIDTH BREAKOUT
+   ════════════════════════════════════════ */
+
+.phenomenology-view,
+.praxis-view,
+.contradiction-view,
+.stoic-view,
+.gua-view {
+    width: calc(100vw - var(--sidebar-width));
+    margin-left: calc(-1 * ((100vw - var(--sidebar-width) - 100%) / 2));
+    padding: 0 var(--space-6);
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .phenomenology-view,
+    .praxis-view,
+    .contradiction-view,
+    .stoic-view,
+    .gua-view {
+        width: 100%;
+        margin-left: 0;
+        padding: 0;
+    }
+}
+
+/* ════════════════════════════════════════
    HERO SECTION
    ════════════════════════════════════════ */
 .hero {
@@ -3456,12 +3483,6 @@ textarea:focus-visible {
     line-height: 1.5;
 }
 
-.knowledge-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: var(--space-4);
-}
-
 .knowledge-card {
     background: var(--bg-elevated);
     border: 1px solid var(--border-default);
@@ -3579,19 +3600,19 @@ textarea:focus-visible {
     gap: var(--space-4);
 }
 
-/* ════════════════════════════════════════
-   RESPONSIVE
-   ════════════════════════════════════════ */
-
-@media (max-width: 768px) {
-    .knowledge-grid { grid-template-columns: 1fr; }
-    .knowledge-header { flex-direction: column; text-align: center; }
-    .knowledge-icon { margin: 0 auto; }
+.knowledge-card {
+    min-width: 280px;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
-/* ── 响应式 ── */
-@media (max-width: 768px) {
-    .knowledge-grid { grid-template-columns: 1fr; }
+@media (max-width: 560px) {
+    .knowledge-grid {
+        grid-template-columns: 1fr;
+    }
+    .knowledge-card {
+        min-width: 0;
+    }
     .knowledge-header { flex-direction: column; text-align: center; }
     .knowledge-icon { margin: 0 auto; }
 }
