@@ -584,5 +584,33 @@
     <script src="data/stoicData.js" defer></script>
     <script src="animations.js" defer></script>
     <script src="app.js" defer></script>
+
+    <!-- Analysis Modal -->
+    <div class="modal-overlay" id="analysisModal" onclick="if(event.target===this) closeAnalysisModal()">
+        <div class="modal-panel analysis-modal-panel" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <div class="modal-title">深度分析</div>
+                <button class="modal-close" onclick="closeAnalysisModal()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body analysis-modal-body">
+                <div class="input-summary" id="analysisInputSummary"></div>
+                <div class="streaming-content" id="analysisStreamingContent">
+                    <div class="streaming-placeholder">正在准备分析...</div>
+                </div>
+            </div>
+            <div class="modal-footer analysis-modal-footer">
+                <div style="display:flex;gap:var(--space-3)">
+                    <button class="btn-secondary" id="analysisModalRetry" onclick="retryAnalysis()" style="display:none">重新分析</button>
+                    <button class="btn-secondary" id="analysisModalCopy" onclick="copyAnalysisResult()" style="display:none">复制结果</button>
+                </div>
+                <button class="btn-analyze" onclick="closeAnalysisModal()">关闭</button>
+            </div>
+        </div>
+    </div>
 </body>
 </html>

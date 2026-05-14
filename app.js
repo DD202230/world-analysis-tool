@@ -279,6 +279,46 @@ function buildSystemPrompt(gua, pratitya, scenario, movingYao, changedGua) {
     return prompt;
 }
 
+function buildUserPrompt(scenario, dim, type) {
+    const dimNames = {
+        all: '全面分析（现象学 + 易经推演 + 实践指导）',
+        phenomenology: '现象学分析 — 当前情境「是什么」',
+        yijing: '易经推演 — 变化规律与时空定位',
+        buddhism: '十二因缘分析 — 因果链条',
+        marxism: '马克思主义分析 — 实践论与矛盾论',
+        stoic: '斯多葛哲学 — 行动指导'
+    };
+    const typeNames = {
+        personal: '个人决策',
+        relationship: '人际关系',
+        business: '商业战略',
+        social: '社会现象',
+        creative: '创作瓶颈',
+        political: '政治博弈'
+    };
+
+    let prompt = `你是一位融合东西方哲学传统的深度分析师。请基于以下信息，为用户提供深度解读：\n\n`;
+    prompt += `【框架说明】\n`;
+    prompt += `- 分析层（现象学）：分析当前情境「是什么」——剥离预设，回到事物本身\n`;
+    prompt += `- 推演层（易经+十二因缘）：推演变化规律——时空定位与人性驱动\n`;
+    prompt += `- 指导层（马克思主义+斯多葛）：指导如何行动——实践方法论与可控行动\n\n`;
+    prompt += `## 用户描述的现象\n${scenario}\n\n`;
+    prompt += `## 分析维度\n${dimNames[dim] || dimNames.all}\n\n`;
+    if (type && typeNames[type]) {
+        prompt += `## 现象类型\n${typeNames[type]}\n\n`;
+    }
+    prompt += `## 分析要求\n`;
+    prompt += `1. **分析层**：从现象学角度，帮助用户剥离预设、回到事物本身\n`;
+    prompt += `2. **推演层**：从易经+十二因缘角度，推演系统的能量状态和变化趋势\n`;
+    prompt += `3. **指导层**：从马克思主义+斯多葛角度，给出具体可操作的行动建议\n`;
+    prompt += `4. **整合**：将三类哲学视角整合为一个有机的整体解读\n`;
+    prompt += `5. **行动**：给出3-5条具体可操作的干预建议\n`;
+    prompt += `6. 用Markdown格式输出，层次分明\n`;
+    prompt += `7. 语言要有洞察力，避免泛泛而谈\n`;
+
+    return prompt;
+}
+
 function markdownToHtml(md) {
     return md
         .replace(/^### (.*$)/gim, '<h3 style="color:var(--accent-400);font-size:15px;margin:16px 0 8px;font-weight:600;">$1</h3>')
@@ -624,6 +664,7 @@ document.addEventListener('keydown', (e) => {
         closeCompareModal();
         closeExportImage();
         closeSettings();
+        closeAnalysisModal();
         const so = document.getElementById('shortcutsOverlay');
         if (so) so.remove();
     }
@@ -2162,6 +2203,11 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
     const apiKey = state.settings.llmApiKey;
     const config = LLM_CONFIG.providers[provider];
 
+    if (!config) {
+        onError('未知的 LLM 提供商: ' + provider);
+        return;
+    }
+
     if (!apiKey) {
         onError('请先输入 API Key');
         return;
@@ -2978,90 +3024,197 @@ function analyze() {
         showToast('请先描述你想分析的现象');
         return;
     }
-    if (window.YIYIN_ANIMATIONS) {
-        window.YIYIN_ANIMATIONS.setAnalyzeButtonLoading(true);
-    } else {
-        const btn = document.getElementById('analyzeBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div> 分析中...';
-    }
-    // Show progress tracker immediately
-    showAnalysisProgress();
-    
-    setTimeout(() => {
-        try {
-            updateProgressStep(0, '匹配现象学维度...');
-            const phenomenology = matchPhenomenology(scenario, state.selectedType);
-            
-            updateProgressStep(1, '推演易经卦象...');
-            const gua = matchGua(scenario, state.selectedType);
-            
-            updateProgressStep(2, '分析十二因缘...');
-            const pratitya = matchPratitya(scenario, state.selectedType);
-            
-            updateProgressStep(3, '计算动爻变卦...');
-            const movingYao = determineMovingYao(scenario);
-            const changedGua = calculateChangedGua(gua, movingYao);
-            
-            updateProgressStep(4, '匹配实践论阶段...');
-            const praxis = matchPraxis(scenario, state.selectedType);
-            
-            updateProgressStep(5, '分析矛盾结构...');
-            const contradiction = matchContradiction(scenario, state.selectedType);
-            
-            updateProgressStep(6, '匹配斯多葛原则...');
-            const stoic = matchStoic(scenario, state.selectedType);
-            
-            updateProgressStep(7, '生成交叉分析...');
-            const cross = crossAnalysis4D(gua, pratitya, praxis, contradiction, phenomenology, stoic);
-            
-            updateProgressStep(8, '生成行动建议...');
-            const actions = generateActions(gua, pratitya, changedGua);
-            const praxisActions = generatePraxisActions(praxis, analysisDepthConfig[getAnalysisDepth()]);
-            const contraActions = generateContradictionActions(contradiction, analysisDepthConfig[getAnalysisDepth()]);
-            const stoicActions = generateStoicActions(stoic, analysisDepthConfig[getAnalysisDepth()]);
-            
-            updateProgressStep(9, '保存结果...');
-            const result = { 
-                phenomenology,
-                gua, pratitya, changedGua,
-                praxis, contradiction, stoic,
-                cross, actions, praxisActions, contraActions, stoicActions,
-                scenario, timestamp: Date.now(), movingYao
-            };
+
+    // Open analysis modal immediately with LLM streaming
+    showAnalysisModal(scenario, state.selectedDim, state.selectedType);
+
+    // Run local analysis in background for structured result cards
+    setTimeout(() => runLocalAnalysis(scenario), 50);
+}
+
+function runLocalAnalysis(scenario) {
+    try {
+        const phenomenology = matchPhenomenology(scenario, state.selectedType);
+        const gua = matchGua(scenario, state.selectedType);
+        const pratitya = matchPratitya(scenario, state.selectedType);
+        const movingYao = determineMovingYao(scenario);
+        const changedGua = calculateChangedGua(gua, movingYao);
+        const praxis = matchPraxis(scenario, state.selectedType);
+        const contradiction = matchContradiction(scenario, state.selectedType);
+        const stoic = matchStoic(scenario, state.selectedType);
+        const cross = crossAnalysis4D(gua, pratitya, praxis, contradiction, phenomenology, stoic);
+        const actions = generateActions(gua, pratitya, changedGua);
+        const praxisActions = generatePraxisActions(praxis, analysisDepthConfig[getAnalysisDepth()]);
+        const contraActions = generateContradictionActions(contradiction, analysisDepthConfig[getAnalysisDepth()]);
+        const stoicActions = generateStoicActions(stoic, analysisDepthConfig[getAnalysisDepth()]);
+
+        const result = {
+            phenomenology,
+            gua, pratitya, changedGua,
+            praxis, contradiction, stoic,
+            cross, actions, praxisActions, contraActions, stoicActions,
+            scenario, timestamp: Date.now(), movingYao
+        };
+
+        // Merge with existing currentResult to preserve llmAnalysis if already set
+        if (state.currentResult) {
+            Object.assign(state.currentResult, result);
+        } else {
             state.currentResult = result;
-            saveToHistory(result);
-            
-            updateProgressStep(10, '渲染结果...');
-            if (state.settings.llmMode && state.settings.llmApiKey) {
-                renderResult(result, true);
-                renderLlmAnalysis(result);
-            } else {
-                renderResult(result, false);
-            }
-            
-            // Hide progress after rendering
-            setTimeout(() => {
-                const progressEl = document.getElementById('analysisProgress');
-                if (progressEl) progressEl.remove();
-            }, 500);
-        } catch (err) {
-            console.error('分析失败:', err);
-            showProgressError(err.message);
-            showToast('分析出错: ' + err.message, 'error');
-        } finally {
-            if (window.YIYIN_ANIMATIONS) {
-                window.YIYIN_ANIMATIONS.setAnalyzeButtonLoading(false);
-                setTimeout(() => window.YIYIN_ANIMATIONS.animateResultCards(), 50);
-            } else {
-                const btn = document.getElementById('analyzeBtn');
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg> 开始分析';
-                }
-            }
         }
-    }, 100);
+        saveToHistory(state.currentResult);
+
+        // If modal is already closed, render results now
+        const modal = document.getElementById('analysisModal');
+        if (!modal || !modal.classList.contains('active')) {
+            renderResult(state.currentResult, !!state.currentResult.llmAnalysis);
+        }
+    } catch (err) {
+        console.error('本地分析失败:', err);
+    }
+}
+
+// ════════════════════════════════════════
+// ANALYSIS MODAL — LLM streaming in focused dialog
+// ════════════════════════════════════════
+
+function showAnalysisModal(scenario, dim, type) {
+    try {
+        const modal = document.getElementById('analysisModal');
+        const summaryEl = document.getElementById('analysisInputSummary');
+        const contentEl = document.getElementById('analysisStreamingContent');
+        const retryBtn = document.getElementById('analysisModalRetry');
+        const copyBtn = document.getElementById('analysisModalCopy');
+
+        if (!modal || !summaryEl || !contentEl) {
+            showToast('弹窗元素未找到，请刷新页面重试', 'error');
+            return;
+        }
+
+        // Reset state
+        contentEl.innerHTML = '<div class="streaming-placeholder">正在连接 AI 分析师...</div>';
+        if (retryBtn) retryBtn.style.display = 'none';
+        if (copyBtn) copyBtn.style.display = 'none';
+
+        // Build summary
+        const dimNames = {
+            all: '全面分析',
+            phenomenology: '现象学',
+            yijing: '易经推演',
+            buddhism: '十二因缘',
+            marxism: '马克思主义',
+            stoic: '斯多葛哲学'
+        };
+        const typeNames = {
+            personal: '个人决策',
+            relationship: '人际关系',
+            business: '商业战略',
+            social: '社会现象',
+            creative: '创作瓶颈',
+            political: '政治博弈'
+        };
+
+        summaryEl.innerHTML = `
+            <div class="input-summary-header" onclick="this.closest('.input-summary').classList.toggle('collapsed')">
+                <span>分析输入摘要</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+            </div>
+            <div class="input-summary-content">
+                <div class="summary-row">
+                    <span class="summary-label">分析维度</span>
+                    <span class="summary-value">${dimNames[dim] || dimNames.all}</span>
+                </div>
+                ${type ? `
+                <div class="summary-row">
+                    <span class="summary-label">现象类型</span>
+                    <span class="summary-value">${typeNames[type] || type}</span>
+                </div>
+                ` : ''}
+                <div class="summary-scenario">${escapeHtml(scenario)}</div>
+            </div>
+        `;
+
+        // Show modal
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+
+        // Start LLM streaming
+        const prompt = buildUserPrompt(scenario, dim, type);
+        let fullText = '';
+        let isFirstChunk = true;
+
+        streamLLM(prompt,
+            (chunk) => {
+                if (isFirstChunk) {
+                    contentEl.innerHTML = '';
+                    isFirstChunk = false;
+                }
+                fullText += chunk;
+                contentEl.innerHTML = markdownToHtml(fullText);
+                contentEl.scrollTop = contentEl.scrollHeight;
+            },
+            () => {
+                // Done
+                if (!state.currentResult) state.currentResult = {};
+                state.currentResult.llmAnalysis = fullText;
+                state.currentResult.scenario = scenario;
+                if (retryBtn) retryBtn.style.display = 'inline-flex';
+                if (copyBtn) copyBtn.style.display = 'inline-flex';
+                showToast('深度分析完成', 'success');
+            },
+            (error) => {
+                contentEl.innerHTML = `<div style="color:var(--danger);padding:16px">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px">
+                        <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    ${escapeHtml(String(error))}
+                    <br><br>
+                    <button class="header-btn" onclick="retryAnalysis()">重试</button>
+                </div>`;
+                if (retryBtn) retryBtn.style.display = 'inline-flex';
+            }
+        );
+    } catch (err) {
+        console.error('showAnalysisModal error:', err);
+        showToast('弹窗初始化失败: ' + (err.message || err), 'error');
+    }
+}
+
+function closeAnalysisModal() {
+    const modal = document.getElementById('analysisModal');
+    if (modal) modal.classList.remove('active');
+    document.body.style.overflow = '';
+
+    // Abort any ongoing LLM request
+    if (currentLlmAbortController) {
+        currentLlmAbortController.abort();
+        currentLlmAbortController = null;
+    }
+
+    // Render local results if available
+    if (state.currentResult && state.currentResult.gua) {
+        renderResult(state.currentResult, !!state.currentResult.llmAnalysis);
+        setTimeout(() => {
+            if (window.YIYIN_ANIMATIONS) {
+                window.YIYIN_ANIMATIONS.initScrollAnimations();
+            }
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+    }
+}
+
+function retryAnalysis() {
+    const scenario = document.getElementById('scenario').value.trim();
+    if (!scenario) return;
+    showAnalysisModal(scenario, state.selectedDim, state.selectedType);
+}
+
+function copyAnalysisResult() {
+    if (!state.currentResult?.llmAnalysis) return;
+    navigator.clipboard.writeText(state.currentResult.llmAnalysis)
+        .then(() => showToast('已复制到剪贴板', 'success'));
 }
 
 function showSkeletonResults() {
