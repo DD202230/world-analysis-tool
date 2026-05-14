@@ -330,9 +330,10 @@ function buildUserPrompt(scenario, dim, type) {
 
 function markdownToHtml(md) {
     return md
+        .replace(/^#### (.*$)/gim, '<h4 style="color:var(--accent-400);font-size:14px;margin:14px 0 6px;font-weight:600;">$1</h4>')
         .replace(/^### (.*$)/gim, '<h3 style="color:var(--accent-400);font-size:15px;margin:16px 0 8px;font-weight:600;">$1</h3>')
-        .replace(/^## (.*$)/gim, '<h2 style="color:var(--accent-300);font-size:16px;margin:20px 0 10px;font-weight:600;">$1</h2>')
-        .replace(/^# (.*$)/gim, '<h1 style="color:var(--accent-300);font-size:18px;margin:24px 0 12px;font-weight:700;">$1</h1>')
+        .replace(/^## (.*$)/gim, '<h2 style="color:var(--accent-300);font-size:17px;margin:20px 0 10px;font-weight:600;">$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1 style="color:var(--accent-300);font-size:20px;margin:24px 0 12px;font-weight:700;">$1</h1>')
         .replace(/\*\*(.*?)\*\*/g, '<strong style="color:var(--text-primary);">$1</strong>')
         .replace(/\*(.*?)\*/g, '<em>$1</em>')
         .replace(/^- (.*$)/gim, '<li style="margin:4px 0;color:var(--text-secondary);">$1</li>')
