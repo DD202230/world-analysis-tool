@@ -997,12 +997,8 @@ function updateFavoritesUI() {
 function loadHistory(id) {
     const item = state.history.find(h => h.id === id);
     if (item && item.fullResult) {
-        document.getElementById('scenario').value = item.scenario;
-        updateCharCount();
-        state.currentTags = item.tags || [];
-        renderTags();
-        renderResult(item.fullResult);
-        switchView('analyze');
+        state.currentResult = item.fullResult;
+        showSavedAnalysisModal(item.fullResult);
     }
 }
 
@@ -3063,12 +3059,6 @@ function runLocalAnalysis(scenario) {
             state.currentResult = result;
         }
         saveToHistory(state.currentResult);
-
-        // If modal is already closed, render results now
-        const modal = document.getElementById('analysisModal');
-        if (!modal || !modal.classList.contains('active')) {
-            renderResult(state.currentResult, !!state.currentResult.llmAnalysis);
-        }
     } catch (err) {
         console.error('本地分析失败:', err);
     }
@@ -3192,17 +3182,55 @@ function closeAnalysisModal() {
         currentLlmAbortController.abort();
         currentLlmAbortController = null;
     }
+}
 
-    // Render local results if available
-    if (state.currentResult && state.currentResult.gua) {
-        renderResult(state.currentResult, !!state.currentResult.llmAnalysis);
-        setTimeout(() => {
-            if (window.YIYIN_ANIMATIONS) {
-                window.YIYIN_ANIMATIONS.initScrollAnimations();
-            }
-            document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 50);
+function showSavedAnalysisModal(result) {
+    const modal = document.getElementById('analysisModal');
+    const summaryEl = document.getElementById('analysisInputSummary');
+    const contentEl = document.getElementById('analysisStreamingContent');
+    const retryBtn = document.getElementById('analysisModalRetry');
+    const copyBtn = document.getElementById('analysisModalCopy');
+
+    if (!modal || !summaryEl || !contentEl) {
+        showToast('弹窗元素未找到，请刷新页面重试', 'error');
+        return;
     }
+
+    // Build summary from saved result
+    summaryEl.innerHTML = `
+        <div class="input-summary-header" onclick="this.closest('.input-summary').classList.toggle('collapsed')">
+            <span>历史分析结果</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+        </div>
+        <div class="input-summary-content">
+            <div class="summary-row">
+                <span class="summary-label">分析时间</span>
+                <span class="summary-value">${new Date(result.timestamp).toLocaleString()}</span>
+            </div>
+            <div class="summary-row">
+                <span class="summary-label">卦象</span>
+                <span class="summary-value">${result.gua ? result.gua.fullname : '-'}</span>
+            </div>
+            <div class="summary-scenario">${escapeHtml(result.scenario || '')}</div>
+        </div>
+    `;
+
+    // Show saved content
+    if (result.llmAnalysis) {
+        contentEl.innerHTML = markdownToHtml(result.llmAnalysis);
+    } else {
+        contentEl.innerHTML = '<div class="streaming-placeholder">该记录暂无深度分析内容</div>';
+    }
+
+    if (retryBtn) retryBtn.style.display = 'none';
+    if (copyBtn) {
+        copyBtn.style.display = result.llmAnalysis ? 'inline-flex' : 'none';
+    }
+
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
 }
 
 function retryAnalysis() {
@@ -3376,390 +3404,13 @@ ${cross}`;
 }
 
 function renderResult(result, withLlmPlaceholder = false) {
-    const { phenomenology, gua, pratitya, praxis, contradiction, stoic, cross, actions, praxisActions, contraActions, stoicActions, movingYao, changedGua } = result;
-    const depth = getAnalysisDepth();
-    const config = analysisDepthConfig[depth];
-    let html = '';
-
-    // ════════════════════════════════════════
-    // 分析层：现象学 — 当前情境是什么
-    // ════════════════════════════════════════
-    if (state.selectedDim === 'all' || state.selectedDim === 'phenomenology') {
-        html += `
-        <div class="result-card collapsible phenomenology-card" data-scroll-animation="fadeIn">
-            <div class="result-header" onclick="toggleResultCard(this)">
-                <div class="gua-symbol" style="background:linear-gradient(135deg,#00bcd4,#3f51b5);color:#fff">现</div>
-                <div class="gua-info">
-                    <h3>现象学分析</h3>
-                    <div class="gua-meta"><span class="tag tag-phase">回到事物本身</span></div>
-                </div>
-                <button class="header-btn" style="margin-left:auto;flex-shrink:0" onclick="event.stopPropagation();copyResultSection('phenomenology')" title="复制">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
-            </div>
-            <div class="result-body">
-            <div class="chain-display">
-                ${phenomenology.chain.map((node, i) => `
-                    <div class="chain-node ${node.data.color} ${node.isPrimary ? 'active' : ''}" title="${node.data.meaning}">${node.data.name}</div>
-                    ${i < phenomenology.chain.length - 1 ? '<span class="chain-arrow">→</span>' : ''}
-                `).join('')}
-            </div>
-            <div style="margin-bottom:16px;">
-                <span class="tag tag-phase">主要维度：${phenomenology.primary.name}</span>
-                ${phenomenology.secondary ? `<span class="tag tag-yin">次要维度：${phenomenology.secondary.name}</span>` : ''}
-            </div>
-            <div class="content-block">
-                <h4>${phenomenology.primary.name}</h4>
-                <p><strong style="color:var(--text-primary)">含义：</strong>${phenomenology.primary.meaning}</p>
-                <p><strong style="color:var(--text-primary)">表现：</strong>${phenomenology.primary.manifestation}</p>
-                <p><strong style="color:var(--text-primary)">在决策中：</strong>${phenomenology.primary.inDecision}</p>
-                <p><strong style="color:var(--success)">突破点：</strong>${phenomenology.primary.breakPoint}</p>
-            </div>
-            ${phenomenology.secondary && config.detailLevel !== 'brief' ? `
-            <div class="content-block">
-                <h4>${phenomenology.secondary.name}</h4>
-                <p><strong style="color:var(--text-primary)">含义：</strong>${phenomenology.secondary.meaning}</p>
-                <p><strong style="color:var(--success)">突破点：</strong>${phenomenology.secondary.breakPoint}</p>
-            </div>
-            ` : ''}
-            <div class="content-block">
-                <h4>反思问题</h4>
-                <ul style="margin:0;padding-left:20px;color:var(--text-secondary)">
-                    ${phenomenology.primary.questions.map(q => `<li style="margin-bottom:6px">${q}</li>`).join('')}
-                </ul>
-            </div>
-            </div>
-        </div>`;
-    }
-
-    // ════════════════════════════════════════
-    // 推演层：易经 + 十二因缘 — 变化规律
-    // ════════════════════════════════════════
-    if (state.selectedDim === 'all' || state.selectedDim === 'yijing') {
-        html += `
-        <div class="result-card collapsible" data-scroll-animation="fadeIn">
-            <div class="result-header" onclick="toggleResultCard(this)">
-                <div class="gua-symbol">${gua.symbol}</div>
-                <div class="gua-info">
-                    <h3>${gua.fullname}</h3>
-                    <div class="gua-meta">
-                        <span class="tag tag-yang">${gua.nature}</span>
-                        <span class="tag tag-phase">${gua.phase}</span>
-                        ${movingYao ? `<span class="tag tag-info">动爻第${movingYao}爻</span>` : ''}
-                    </div>
-                </div>
-                <button class="header-btn" style="margin-left:auto;flex-shrink:0" onclick="event.stopPropagation();copyResultSection('gua')" title="复制">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
-            </div>
-            <div class="result-body">
-            <div style="margin-bottom:16px;">
-                ${gua.keywords.map(k => `<span class="tag tag-yang">${k}</span>`).join('')}
-            </div>
-            <div class="content-block"><h4>卦象释义</h4><p>${gua.meaning}</p></div>
-            <div class="content-block"><h4>当前位置</h4><p>${gua.position}</p></div>
-            <div class="content-block"><h4>危险警示</h4><p style="color:var(--danger)">${gua.danger}</p></div>
-            <div class="content-block"><h4>转化方向</h4><p style="color:var(--success)">${gua.transform}</p></div>
-            ${config.showLines ? `
-            <div class="content-block"><h4>六爻启示</h4>
-                <div class="yao-lines">
-                    ${gua.lines.map((line, i) => `
-                        <div class="yao-line">
-                            <span class="yao-label">第${i+1}爻</span>
-                            <div class="yao-bar ${i % 2 === 0 ? 'yang' : 'yin'} ${movingYao === i + 1 ? 'moving' : ''}"></div>
-                            <span class="yao-text">${line}</span>
-                            ${movingYao === i + 1 ? '<span class="yao-moving-badge">动</span>' : ''}
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            ` : ''}
-            ${changedGua && config.showChangedGua ? `
-            <div class="changed-gua-section">
-                <div class="changed-gua-header">
-                    <div class="gua-symbol" style="width:40px;height:40px;font-size:20px;">${gua.symbol}</div>
-                    <span class="changed-gua-arrow">→</span>
-                    <div class="gua-symbol" style="width:40px;height:40px;font-size:20px;">${changedGua.symbol}</div>
-                    <div class="changed-gua-info">
-                        <h4>变卦 · ${changedGua.fullname}</h4>
-                        <p>第${movingYao}爻动，事物向「${changedGua.phase}」方向演化</p>
-                    </div>
-                </div>
-            </div>
-            ` : ''}
-            </div>
-        </div>`;
-    }
-
-    if (state.selectedDim === 'all' || state.selectedDim === 'buddhism') {
-        html += `
-        <div class="result-card collapsible" data-scroll-animation="fadeIn">
-            <div class="result-header" onclick="toggleResultCard(this)">
-                <div class="gua-symbol">☸</div>
-                <div class="gua-info">
-                    <h3>十二因缘分析</h3>
-                    <div class="gua-meta"><span class="tag tag-phase">人性驱动链条</span></div>
-                </div>
-                <button class="header-btn" style="margin-left:auto;flex-shrink:0" onclick="event.stopPropagation();copyResultSection('pratitya')" title="复制">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
-            </div>
-            <div class="result-body">
-            <div class="chain-display">
-                ${pratitya.chain.map((node, i) => `
-                    <div class="chain-node ${node.data.color} ${node.isPrimary ? 'active' : ''}" title="${node.data.meaning}">${node.data.name}</div>
-                    ${i < pratitya.chain.length - 1 ? '<span class="chain-arrow">→</span>' : ''}
-                `).join('')}
-            </div>
-            <div style="margin-bottom:16px;">
-                <span class="tag tag-phase">主要卡点：${pratitya.primary.name}</span>
-                ${pratitya.secondary ? `<span class="tag tag-yin">次要卡点：${pratitya.secondary.name}</span>` : ''}
-            </div>
-            <div class="content-block">
-                <h4>主要卡点 · ${pratitya.primary.name}</h4>
-                <p><strong style="color:var(--text-primary)">含义：</strong>${pratitya.primary.meaning}</p>
-                <p><strong style="color:var(--text-primary)">表现：</strong>${pratitya.primary.manifestation}</p>
-                <p><strong style="color:var(--text-primary)">在决策中：</strong>${pratitya.primary.inDecision}</p>
-                <p><strong style="color:var(--success)">突破点：</strong>${pratitya.primary.breakPoint}</p>
-            </div>
-            ${pratitya.secondary && config.detailLevel !== 'brief' ? `
-            <div class="content-block">
-                <h4>次要卡点 · ${pratitya.secondary.name}</h4>
-                <p><strong style="color:var(--text-primary)">含义：</strong>${pratitya.secondary.meaning}</p>
-                <p><strong style="color:var(--success)">突破点：</strong>${pratitya.secondary.breakPoint}</p>
-            </div>
-            ` : ''}
-            </div>
-        </div>`;
-    }
-
-    if (state.selectedDim === 'all' || state.selectedDim === 'marxism') {
-        html += `
-        <div class="result-card collapsible praxis-card" data-scroll-animation="fadeIn">
-            <div class="result-header" onclick="toggleResultCard(this)">
-                <div class="gua-symbol" style="background:linear-gradient(135deg,#c0392b,#8e44ad);color:#fff">实</div>
-                <div class="gua-info">
-                    <h3>实践论分析</h3>
-                    <div class="gua-meta"><span class="tag tag-phase">认识方法论</span></div>
-                </div>
-                <button class="header-btn" style="margin-left:auto;flex-shrink:0" onclick="event.stopPropagation();copyResultSection('praxis')" title="复制">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
-            </div>
-            <div class="result-body">
-            <div class="chain-display">
-                ${praxis.chain.map((node, i) => `
-                    <div class="chain-node ${node.data.color} ${node.isPrimary ? 'active' : ''}" title="${node.data.meaning}">${node.data.name}</div>
-                    ${i < praxis.chain.length - 1 ? '<span class="chain-arrow">→</span>' : ''}
-                `).join('')}
-            </div>
-            <div style="margin-bottom:16px;">
-                <span class="tag tag-phase">主要阶段：${praxis.primary.name}</span>
-                ${praxis.secondary ? `<span class="tag tag-yin">次要阶段：${praxis.secondary.name}</span>` : ''}
-            </div>
-            <div class="content-block">
-                <h4>${praxis.primary.name}</h4>
-                <p><strong style="color:var(--text-primary)">含义：</strong>${praxis.primary.meaning}</p>
-                <p><strong style="color:var(--text-primary)">表现：</strong>${praxis.primary.manifestation}</p>
-                <p><strong style="color:var(--text-primary)">在决策中：</strong>${praxis.primary.inDecision}</p>
-                <p><strong style="color:var(--success)">突破点：</strong>${praxis.primary.breakPoint}</p>
-            </div>
-            ${praxis.secondary && config.detailLevel !== 'brief' ? `
-            <div class="content-block">
-                <h4>${praxis.secondary.name}</h4>
-                <p><strong style="color:var(--text-primary)">含义：</strong>${praxis.secondary.meaning}</p>
-                <p><strong style="color:var(--success)">突破点：</strong>${praxis.secondary.breakPoint}</p>
-            </div>
-            ` : ''}
-            <div class="content-block">
-                <h4>反思问题</h4>
-                <ul style="margin:0;padding-left:20px;color:var(--text-secondary)">
-                    ${praxis.primary.questions.map(q => `<li style="margin-bottom:6px">${q}</li>`).join('')}
-                </ul>
-            </div>
-            </div>
-        </div>`;
-    }
-
-    if (state.selectedDim === 'all' || state.selectedDim === 'marxism') {
-        html += `
-        <div class="result-card collapsible contradiction-card" data-scroll-animation="fadeIn">
-            <div class="result-header" onclick="toggleResultCard(this)">
-                <div class="gua-symbol" style="background:linear-gradient(135deg,#e74c3c,#c0392b);color:#fff">矛</div>
-                <div class="gua-info">
-                    <h3>矛盾论分析</h3>
-                    <div class="gua-meta"><span class="tag tag-phase">结构动力学</span></div>
-                </div>
-                <button class="header-btn" style="margin-left:auto;flex-shrink:0" onclick="event.stopPropagation();copyResultSection('contradiction')" title="复制">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
-            </div>
-            <div class="result-body">
-            <div style="margin-bottom:16px;">
-                <span class="tag tag-phase">主要矛盾：${contradiction.primary.name}</span>
-                ${contradiction.secondary ? `<span class="tag tag-yin">次要维度：${contradiction.secondary.name}</span>` : ''}
-            </div>
-            <div class="content-block">
-                <h4>${contradiction.primary.name}</h4>
-                <p><strong style="color:var(--text-primary)">含义：</strong>${contradiction.primary.meaning}</p>
-                <p><strong style="color:var(--text-primary)">表现：</strong>${contradiction.primary.manifestation}</p>
-                <p><strong style="color:var(--text-primary)">在决策中：</strong>${contradiction.primary.inDecision}</p>
-                <p><strong style="color:var(--success)">突破点：</strong>${contradiction.primary.breakPoint}</p>
-                <p style="margin-top:12px;padding:12px;background:var(--bg-tertiary);border-radius:8px;border-left:3px solid var(--danger)">
-                    <strong style="color:var(--danger)">辩证法：</strong>${contradiction.primary.dialectic}
-                </p>
-            </div>
-            ${contradiction.secondary && config.detailLevel !== 'brief' ? `
-            <div class="content-block">
-                <h4>${contradiction.secondary.name}</h4>
-                <p><strong style="color:var(--text-primary)">含义：</strong>${contradiction.secondary.meaning}</p>
-                <p><strong style="color:var(--success)">突破点：</strong>${contradiction.secondary.breakPoint}</p>
-            </div>
-            ` : ''}
-            ${contradiction.matrix && config.detailLevel === 'full' ? `
-            <div class="content-block"><h4>场景矩阵</h4><p>${contradiction.matrix.desc}</p></div>
-            ` : ''}
-            </div>
-        </div>`;
-    }
-
-    // ════════════════════════════════════════
-    // 指导层：斯多葛学派 — 如何行动
-    // ════════════════════════════════════════
-    if (state.selectedDim === 'all' || state.selectedDim === 'stoic') {
-        html += `
-        <div class="result-card collapsible stoic-card" data-scroll-animation="fadeIn">
-            <div class="result-header" onclick="toggleResultCard(this)">
-                <div class="gua-symbol" style="background:linear-gradient(135deg,#27ae60,#2ecc71);color:#fff">斯</div>
-                <div class="gua-info">
-                    <h3>斯多葛行动指南</h3>
-                    <div class="gua-meta"><span class="tag tag-phase">可控之事</span></div>
-                </div>
-                <button class="header-btn" style="margin-left:auto;flex-shrink:0" onclick="event.stopPropagation();copyResultSection('stoic')" title="复制">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
-            </div>
-            <div class="result-body">
-            <div style="margin-bottom:16px;">
-                <span class="tag tag-phase">核心原则：${stoic.primary.name}</span>
-                ${stoic.secondary ? `<span class="tag tag-yin">辅助原则：${stoic.secondary.name}</span>` : ''}
-            </div>
-            <div class="content-block">
-                <h4>${stoic.primary.name}</h4>
-                <p><strong style="color:var(--text-primary)">含义：</strong>${stoic.primary.meaning}</p>
-                <p><strong style="color:var(--text-primary)">表现：</strong>${stoic.primary.manifestation}</p>
-                <p><strong style="color:var(--text-primary)">在决策中：</strong>${stoic.primary.inDecision}</p>
-                <p><strong style="color:var(--success)">突破点：</strong>${stoic.primary.breakPoint}</p>
-                <div style="margin-top:12px;padding:12px;background:var(--bg-tertiary);border-radius:8px;border-left:3px solid var(--success)">
-                    <strong style="color:var(--success)">日常练习：</strong>${stoic.primary.practice}
-                </div>
-            </div>
-            ${stoic.secondary && config.detailLevel !== 'brief' ? `
-            <div class="content-block">
-                <h4>${stoic.secondary.name}</h4>
-                <p><strong style="color:var(--text-primary)">含义：</strong>${stoic.secondary.meaning}</p>
-                <p><strong style="color:var(--success)">突破点：</strong>${stoic.secondary.breakPoint}</p>
-                <div style="margin-top:12px;padding:12px;background:var(--bg-tertiary);border-radius:8px;border-left:3px solid var(--success)">
-                    <strong style="color:var(--success)">日常练习：</strong>${stoic.secondary.practice}
-                </div>
-            </div>
-            ` : ''}
-            ${stoic.matrix && config.detailLevel === 'full' ? `
-            <div class="content-block"><h4>场景指引</h4><p>${stoic.matrix.desc}</p></div>
-            ` : ''}
-            </div>
-        </div>`;
-    }
-
-    if (state.selectedDim === 'all') {
-        html += `
-        <div class="result-card cross-analysis collapsible" data-scroll-animation="fadeIn">
-            <div class="result-header" onclick="toggleResultCard(this)">
-                <div class="gua-symbol">◈</div>
-                <div class="gua-info">
-                    <h3>交叉分析</h3>
-                    <div class="gua-meta">
-                        <span class="tag tag-yang">${gua.fullname}</span>
-                        <span class="tag tag-phase">${pratitya.primary.name}</span>
-                        <span class="tag tag-info">${praxis.primary.name}</span>
-                        <span class="tag tag-danger">${contradiction.primary.name}</span>
-                    </div>
-                </div>
-                <button class="header-btn" style="margin-left:auto;flex-shrink:0" onclick="event.stopPropagation();copyResultSection('cross')" title="复制">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
-            </div>
-            <div class="result-body"><div class="content-block"><p>${cross}</p></div></div>
-        </div>
-        <div class="result-card collapsible" data-scroll-animation="fadeIn">
-            <div class="result-header" onclick="toggleResultCard(this)">
-                <div class="gua-symbol">◉</div>
-                <div class="gua-info">
-                    <h3>干预建议</h3>
-                    <div class="gua-meta"><span class="tag tag-phase">可操作策略</span></div>
-                </div>
-                <button class="header-btn" style="margin-left:auto;flex-shrink:0" onclick="event.stopPropagation();copyResultSection('actions')" title="复制">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
-            </div>
-            <div class="result-body">
-            <div class="action-items">
-                ${actions.map((action, i) => `
-                    <div class="action-item">
-                        <div class="action-num">${i + 1}</div>
-                        <div class="action-content">
-                            <h5>${action.title}</h5>
-                            <p>${action.desc}</p>
-                        </div>
-                    </div>
-                `).join('')}
-            </div>
-            </div>
-        </div>`;
-    }
-
-    if (withLlmPlaceholder) {
-        html += `
-        <div class="result-card collapsible llm-card" id="llmResultCard" data-scroll-animation="fadeIn">
-            <div class="result-header" onclick="toggleResultCard(this)">
-                <div class="gua-symbol" style="background:linear-gradient(135deg,var(--accent-400),#8b6f47);color:#fff">AI</div>
-                <div class="gua-info">
-                    <h3>深度解读</h3>
-                    <div class="gua-meta">
-                        <span class="tag tag-info">${state.settings.llmProvider === 'kimi' ? 'Kimi' : 'DeepSeek'}</span>
-                        <span class="tag tag-phase">实时生成中</span>
-                    </div>
-                </div>
-                <button class="header-btn" id="llmCopyBtn" style="margin-left:auto;flex-shrink:0;display:none" onclick="event.stopPropagation();copyLlmResult()" title="复制">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                </button>
-            </div>
-            <div class="result-body">
-                <div id="llmContent" class="llm-streaming-content">
-                    <div class="llm-loading">
-                        <div class="llm-loading-dot"></div>
-                        <div class="llm-loading-dot"></div>
-                        <div class="llm-loading-dot"></div>
-                        <span style="margin-left:8px;color:var(--text-tertiary);font-size:13px">正在连接 AI 进行深度分析...</span>
-                    </div>
-                </div>
-            </div>
-        </div>`;
-    }
+    // 本地结构化卡片已移除，分析结果仅通过弹窗展示
     const resultsEl = document.getElementById('results');
     if (resultsEl) {
-        resultsEl.innerHTML = html;
-        resultsEl.classList.add('active');
+        resultsEl.innerHTML = '';
+        resultsEl.classList.remove('active');
     }
-    restoreResultCardStates();
-    setTimeout(() => {
-        if (window.YIYIN_ANIMATIONS) {
-            window.YIYIN_ANIMATIONS.initScrollAnimations();
-        }
-        document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 50);
 }
-
 function renderLlmAnalysis(result) {
     try {
     const prompt = buildSystemPrompt(result.gua, result.pratitya, result.scenario, result.movingYao, result.changedGua);
