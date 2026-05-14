@@ -2098,9 +2098,9 @@ body.reduced-motion .yao-line {
 @media (max-width: 768px) {
     .sidebar { transform: translateX(-100%); }
     .sidebar.open { transform: translateX(0); }
-    .main { margin-left: 0; }
+    .main { margin-left: 0; width: 100%; }
     .hero-title { font-size: 28px; }
-    .content { padding: var(--space-5) var(--space-4); }
+    .content { padding: var(--space-5) var(--space-4); max-width: 100%; }
     .options-grid { grid-template-columns: repeat(2, 1fr); }
     .result-header { flex-direction: column; text-align: center; }
     .chain-display { justify-content: center; }
@@ -2112,6 +2112,18 @@ body.reduced-motion .yao-line {
     }
     .compare-grid { grid-template-columns: 1fr; }
     .compare-vs { display: none; }
+    .input-card { padding: var(--space-4); }
+    .result-card { padding: var(--space-4); }
+}
+
+@media (max-width: 480px) {
+    .content { padding: var(--space-4) var(--space-3); }
+    .options-grid { grid-template-columns: 1fr; }
+    .hero-title { font-size: 24px; letter-spacing: 2px; }
+    .btn-analyze { padding: var(--space-3) var(--space-4); font-size: 14px; }
+    .time-divination-body { flex-wrap: wrap; gap: var(--space-2); }
+    .time-divination-actions { margin-top: 0; width: 100%; }
+    .time-divination-actions button { width: 100%; justify-content: center; }
 }
 
 /* ════════════════════════════════════════
@@ -3128,6 +3140,7 @@ html {
     
     .content {
         padding: var(--space-5) var(--space-4);
+        max-width: 100%;
     }
 }
 
