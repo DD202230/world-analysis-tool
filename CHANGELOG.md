@@ -1,5 +1,12 @@
 # 易因 · 世界分析引擎 — 更新日志
 
+## v4.5.7 (2026-05-15) — 移动端新建分析页面 CSS 层叠修复与极致窄屏适配
+
+- **修复 CSS 媒体查询层叠冲突**：删除文件末尾重复的 `@media (max-width: 768px)`，该媒体查询此前覆盖了 `@media (max-width: 480px)` 中的 `.hero-title` 和 `.content` 规则，导致极小屏幕上的样式未生效
+- **极致窄屏 padding 优化**：在 480px 以下进一步减小 `.content`、`.input-card`、`.result-card`、`.main-textarea`、`.time-divination`、`.header` 的内边距，释放更多可用宽度
+- **标题与 hero 区域适配**：`.hero-title` 降至 22px，`.hero` 垂直 padding 减小，`.hero-subtitle` 取消 480px 的 max-width 限制并减小字号
+- **明确 `.main` 与 `.content` 宽度**：在 480px 媒体查询中显式设置 `width: 100%` 与 `max-width: 100%`，彻底消除宽度计算偏差
+
 ## v4.5.6 (2026-05-15) — 移动端新建分析页面比例修复
 
 - 修复 `.main` 在移动端可能因 flex 布局导致宽度计算偏差的问题，显式设置 `width: 100%`
