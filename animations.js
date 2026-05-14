@@ -228,13 +228,12 @@ function animateSidebarOpen(sidebar) {
   sidebar.classList.add('open');
   const overlay = document.createElement('div');
   overlay.className = 'sidebar-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:99;opacity:0;';
   document.body.appendChild(overlay);
   
-  animateElement(overlay, [
-    { opacity: 0 },
-    { opacity: 1 }
-  ], { duration: YIYIN_DURATIONS.base });
+  // Force reflow then add active class for transition
+  requestAnimationFrame(() => {
+    overlay.classList.add('active');
+  });
   
   overlay.addEventListener('click', () => {
     animateSidebarClose(sidebar, overlay);
@@ -244,19 +243,12 @@ function animateSidebarOpen(sidebar) {
 }
 
 function animateSidebarClose(sidebar, overlay) {
-  animateElement(sidebar, [
-    { transform: 'translateX(0)' },
-    { transform: 'translateX(-100%)' }
-  ], { duration: YIYIN_DURATIONS.base, easing: YIYIN_EASINGS.easeInOutQuint });
-  
   if (overlay) {
-    animateElement(overlay, [
-      { opacity: 1 },
-      { opacity: 0 }
-    ], { duration: YIYIN_DURATIONS.base }).then(() => overlay.remove());
+    overlay.classList.remove('active');
+    setTimeout(() => overlay.remove(), 300);
   }
   
-  setTimeout(() => sidebar.classList.remove('open'), YIYIN_DURATIONS.base);
+  sidebar.classList.remove('open');
 }
 
 // ════════════════════════════════════════
@@ -507,21 +499,25 @@ function setAnalyzeButtonLoading(loading) {
   
   if (loading) {
     btn.disabled = true;
-    btn.innerHTML = '';
-    const loader = createLoadingAnimation(btn);
-    loader.style.display = 'inline-flex';
-    const span = document.createElement('span');
-    span.textContent = ' 分析中...';
-    span.style.marginLeft = '8px';
-    btn.appendChild(span);
+    btn.classList.add('loading');
+    const originalContent = btn.innerHTML;
+    btn.dataset.originalContent = originalContent;
+    btn.innerHTML = `
+      <span class="btn-loader">
+        <span class="btn-loader-dot"></span>
+        <span class="btn-loader-dot"></span>
+        <span class="btn-loader-dot"></span>
+      </span>
+      <span class="btn-text">分析中...</span>
+    `;
   } else {
     btn.disabled = false;
-    btn.innerHTML = `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-      </svg>
-      开始分析
-    `;
+    btn.classList.remove('loading');
+    const original = btn.dataset.originalContent;
+    if (original) {
+      btn.innerHTML = original;
+      delete btn.dataset.originalContent;
+    }
   }
 }
 

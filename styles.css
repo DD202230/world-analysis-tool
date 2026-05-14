@@ -933,9 +933,48 @@ body {
 .btn-analyze:active { transform: translateY(0); }
 
 .btn-analyze:disabled {
-    opacity: 0.5;
+    opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+    box-shadow: none;
+    background: linear-gradient(135deg, var(--accent-600), var(--accent-700));
+}
+
+.btn-analyze.loading {
+    pointer-events: none;
+    background: linear-gradient(135deg, var(--accent-600), var(--accent-700));
+}
+
+.btn-analyze.loading .btn-text {
+    opacity: 0.7;
+}
+
+.btn-analyze .btn-loader {
+    display: none;
+    gap: 4px;
+}
+
+.btn-analyze.loading .btn-loader {
+    display: flex;
+}
+
+.btn-analyze.loading .btn-icon {
+    display: none;
+}
+
+.btn-loader-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: btnLoaderPulse 1.4s infinite ease-in-out both;
+}
+
+.btn-loader-dot:nth-child(1) { animation-delay: -0.32s; }
+.btn-loader-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes btnLoaderPulse {
+    0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
+    40% { transform: scale(1); opacity: 1; }
 }
 
 .btn-secondary {
@@ -2309,9 +2348,15 @@ body.reduced-motion .yao-line {
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     z-index: 99;
     opacity: 0;
-    animation: fadeIn 250ms forwards;
+    transition: opacity 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sidebar-overlay.active {
+    opacity: 1;
 }
 
 /* ════════════════════════════════════════
@@ -2386,6 +2431,52 @@ body.reduced-motion .yao-line {
     opacity: 1;
     transform: translateY(0);
     transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1), transform 350ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ════════════════════════════════════════
+   SKELETON LOADING
+   ════════════════════════════════════════ */
+.skeleton-card {
+    pointer-events: none;
+    opacity: 1;
+    transform: none;
+}
+
+.skeleton-line {
+    background: linear-gradient(90deg, var(--surface-hover) 25%, var(--surface-active) 50%, var(--surface-hover) 75%);
+    background-size: 200% 100%;
+    border-radius: var(--radius-sm);
+    animation: skeleton-pulse 1.5s ease-in-out infinite;
+    height: 14px;
+    margin-bottom: 10px;
+}
+
+.skeleton-title {
+    width: 120px;
+    height: 18px;
+    margin-bottom: 8px;
+}
+
+.skeleton-meta {
+    width: 80px;
+    height: 12px;
+}
+
+.skeleton-text {
+    width: 100%;
+}
+
+.skeleton-text.short {
+    width: 60%;
+}
+
+.skeleton-text.medium {
+    width: 80%;
+}
+
+@keyframes skeleton-pulse {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 /* ════════════════════════════════════════
@@ -2832,17 +2923,20 @@ html {
 }
 
 .result-card.collapsible .result-body {
+    display: grid;
+    grid-template-rows: 1fr;
     overflow: hidden;
-    transition: max-height 400ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease, padding 300ms ease;
-    max-height: 3000px;
+    transition: grid-template-rows 400ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms ease;
     opacity: 1;
 }
 
 .result-card.collapsible.collapsed .result-body {
-    max-height: 0;
+    grid-template-rows: 0fr;
     opacity: 0;
-    padding-top: 0;
-    padding-bottom: 0;
+}
+
+.result-card.collapsible .result-body > * {
+    min-height: 0;
 }
 
 .result-card.collapsible .result-header .gua-info {

@@ -2313,7 +2313,7 @@ function toggleSetting(key, value) {
 async function exportAllData() {
     const history = await dbGetAll('history');
     const settings = await dbGetAll('settings');
-    const data = { history, settings, exportedAt: new Date().toISOString(), version: '4.0' };
+    const data = { history, settings, exportedAt: new Date().toISOString(), version: '4.3.8' };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -2572,7 +2572,7 @@ function showToast(msg, type = 'info') {
         window.YIYIN_ANIMATIONS.enqueueToast(msg, type);
         return;
     }
-    // Fallback
+    // Fallback — stack toasts vertically
     const container = document.getElementById('toastContainer');
     const toast = document.createElement('div');
     toast.className = 'toast';
@@ -2583,8 +2583,16 @@ function showToast(msg, type = 'info') {
         <div class="toast-progress"></div>
     `;
     container.appendChild(toast);
+    
+    // Animate in
+    requestAnimationFrame(() => {
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+        toast.style.opacity = '1';
+    });
+    
     setTimeout(() => {
-        toast.classList.add('removing');
+        toast.style.transform = 'translateX(-50%) translateY(10px)';
+        toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
     }, 2500);
 }
@@ -2817,7 +2825,7 @@ function crossAnalysis4D(gua, pratitya, praxis, contradiction, phenomenology, st
     const templates = [
         `${gua.fullname}的${gua.phase}状态揭示：当前处于${praxis.primary.name}阶段，核心矛盾是${contradiction.primary.name}。${pratitya.primary.name}的卡点使${praxis.primary.breakPoint}受阻，而${contradiction.primary.dialectic}提示突破方向。${phenomenology ? '现象学视角：' + phenomenology.primary.name + '提醒我们' + phenomenology.primary.breakPoint + '。' : ''}${stoic ? '斯多葛行动：以' + stoic.primary.name + '为锚，' + stoic.primary.breakPoint + '。' : ''}`,
         `从${gua.nature}的能量态看，${praxis.primary.name}是主要认知特征；从人性层面看，${pratitya.primary.name}构成驱动惯性；从矛盾论看，${contradiction.primary.name}决定发展方向。${phenomenology ? '现象学层面：' + phenomenology.primary.manifestation + '。' : ''}${stoic ? '行动层面：' + stoic.primary.practice + '。' : ''}三者的共振点在于：${gua.transform}。`,
-        `${gua.fullname}提示${gua.danger}，而${praxis.primary.name}阶段的${pratitya.primary.manifestation}加剧了${contradiction.primary.manifestation}。突破需同时满足：${pratitya.primary.breakPoint}、${praxis.primary.breakPoint}、${contradiction.primary.breakPoint}。${phenomenology ? '同时回到事物本身：' + phenomenology.primary.questions[0] : ''}${stoic ? '并以斯多葛原则自持：' + stoic.primary.questions[0] : ''}`
+        `${gua.fullname}提示${gua.danger}，而${praxis.primary.name}阶段的${pratitya.primary.manifestation}加剧了${contradiction.primary.manifestation}。突破需同时满足：${pratitya.primary.breakPoint}、${praxis.primary.breakPoint}、${contradiction.primary.breakPoint}。${phenomenology && phenomenology.primary.questions ? '同时回到事物本身：' + phenomenology.primary.questions[0] : ''}${stoic && stoic.primary.practice ? '并以斯多葛原则自持：' + stoic.primary.practice : ''}`
     ];
     const hash = key.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
     return templates[hash % templates.length];
@@ -2977,52 +2985,69 @@ function analyze() {
         btn.disabled = true;
         btn.innerHTML = '<div class="loading"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div> 分析中...';
     }
+    // Show progress tracker immediately
+    showAnalysisProgress();
+    
     setTimeout(() => {
         try {
-            // ════════════════════════════════════════
-            // 三类哲学分工分析
-            // ════════════════════════════════════════
-            
-            // 分析层：现象学 — 分析当前情境是什么
+            updateProgressStep(0, '匹配现象学维度...');
             const phenomenology = matchPhenomenology(scenario, state.selectedType);
             
-            // 推演层：易经 + 十二因缘 — 推演变化规律
+            updateProgressStep(1, '推演易经卦象...');
             const gua = matchGua(scenario, state.selectedType);
+            
+            updateProgressStep(2, '分析十二因缘...');
             const pratitya = matchPratitya(scenario, state.selectedType);
+            
+            updateProgressStep(3, '计算动爻变卦...');
             const movingYao = determineMovingYao(scenario);
             const changedGua = calculateChangedGua(gua, movingYao);
             
-            // 指导层：马克思主义 + 斯多葛 — 指导如何行动
+            updateProgressStep(4, '匹配实践论阶段...');
             const praxis = matchPraxis(scenario, state.selectedType);
+            
+            updateProgressStep(5, '分析矛盾结构...');
             const contradiction = matchContradiction(scenario, state.selectedType);
+            
+            updateProgressStep(6, '匹配斯多葛原则...');
             const stoic = matchStoic(scenario, state.selectedType);
             
-            // 交叉分析（推演层 + 指导层 + 分析层）
+            updateProgressStep(7, '生成交叉分析...');
             const cross = crossAnalysis4D(gua, pratitya, praxis, contradiction, phenomenology, stoic);
             
-            // 行动建议（综合三层）
+            updateProgressStep(8, '生成行动建议...');
             const actions = generateActions(gua, pratitya, changedGua);
             const praxisActions = generatePraxisActions(praxis, analysisDepthConfig[getAnalysisDepth()]);
             const contraActions = generateContradictionActions(contradiction, analysisDepthConfig[getAnalysisDepth()]);
             const stoicActions = generateStoicActions(stoic, analysisDepthConfig[getAnalysisDepth()]);
             
+            updateProgressStep(9, '保存结果...');
             const result = { 
-                phenomenology,  // 分析层
-                gua, pratitya, changedGua,  // 推演层
-                praxis, contradiction, stoic,  // 指导层
+                phenomenology,
+                gua, pratitya, changedGua,
+                praxis, contradiction, stoic,
                 cross, actions, praxisActions, contraActions, stoicActions,
                 scenario, timestamp: Date.now(), movingYao
             };
             state.currentResult = result;
             saveToHistory(result);
+            
+            updateProgressStep(10, '渲染结果...');
             if (state.settings.llmMode && state.settings.llmApiKey) {
                 renderResult(result, true);
                 renderLlmAnalysis(result);
             } else {
                 renderResult(result, false);
             }
+            
+            // Hide progress after rendering
+            setTimeout(() => {
+                const progressEl = document.getElementById('analysisProgress');
+                if (progressEl) progressEl.remove();
+            }, 500);
         } catch (err) {
             console.error('分析失败:', err);
+            showProgressError(err.message);
             showToast('分析出错: ' + err.message, 'error');
         } finally {
             if (window.YIYIN_ANIMATIONS) {
@@ -3036,7 +3061,117 @@ function analyze() {
                 }
             }
         }
-    }, 800);
+    }, 100);
+}
+
+function showSkeletonResults() {
+    const resultsEl = document.getElementById('results');
+    if (!resultsEl) return;
+    resultsEl.classList.add('active');
+    const dims = state.selectedDim === 'all' ? ['phenomenology','yijing','pratitya','praxis','contradiction','stoic','cross','actions'] : [state.selectedDim];
+    const titles = {
+        phenomenology: { icon: '现', color: 'linear-gradient(135deg,#00bcd4,#3f51b5)', title: '现象学分析' },
+        yijing: { icon: '☰', color: 'var(--accent-400)', title: '易经卦象' },
+        pratitya: { icon: '因', color: 'linear-gradient(135deg,#e8a0a0,#a0d4d4)', title: '十二因缘' },
+        praxis: { icon: '实', color: 'linear-gradient(135deg,#e57373,#81c784)', title: '实践论' },
+        contradiction: { icon: '矛', color: 'linear-gradient(135deg,#ff7043,#ab47bc)', title: '矛盾论' },
+        stoic: { icon: '宁', color: 'linear-gradient(135deg,#66bb6a,#26a69a)', title: '斯多葛指南' },
+        cross: { icon: '交', color: 'linear-gradient(135deg,#5c6bc0,#26c6da)', title: '交叉分析' },
+        actions: { icon: '行', color: 'var(--success)', title: '干预建议' }
+    };
+    let html = '';
+    dims.forEach(dim => {
+        const t = titles[dim] || { icon: '析', color: 'var(--accent-400)', title: '分析中' };
+        html += `
+        <div class="result-card skeleton-card">
+            <div class="result-header">
+                <div class="gua-symbol" style="background:${t.color};color:#fff">${t.icon}</div>
+                <div class="gua-info">
+                    <div class="skeleton-line skeleton-title"></div>
+                    <div class="skeleton-line skeleton-meta"></div>
+                </div>
+            </div>
+            <div class="result-body">
+                <div class="skeleton-line skeleton-text"></div>
+                <div class="skeleton-line skeleton-text short"></div>
+                <div class="skeleton-line skeleton-text"></div>
+                <div class="skeleton-line skeleton-text medium"></div>
+            </div>
+        </div>`;
+    });
+    resultsEl.innerHTML = html;
+}
+
+// ════════════════════════════════════════
+// ANALYSIS PROGRESS TRACKER
+// ════════════════════════════════════════
+function showAnalysisProgress() {
+    const resultsEl = document.getElementById('results');
+    if (!resultsEl) return;
+    resultsEl.classList.add('active');
+    const steps = [
+        '匹配现象学维度',
+        '推演易经卦象',
+        '分析十二因缘',
+        '计算动爻变卦',
+        '匹配实践论阶段',
+        '分析矛盾结构',
+        '匹配斯多葛原则',
+        '生成交叉分析',
+        '生成行动建议',
+        '保存结果',
+        '渲染结果'
+    ];
+    let html = '<div id="analysisProgress" style="padding:20px;background:var(--bg-secondary);border-radius:12px;border:1px solid var(--border-color);margin-bottom:16px">';
+    html += '<div style="font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:16px">分析进度</div>';
+    steps.forEach((step, i) => {
+        html += `
+            <div class="progress-step" id="progressStep${i}" style="display:flex;align-items:center;gap:10px;padding:8px 0;opacity:0.4;transition:opacity 0.3s">
+                <div class="progress-dot" style="width:20px;height:20px;border-radius:50%;background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text-tertiary);transition:all 0.3s">${i + 1}</div>
+                <div style="font-size:13px;color:var(--text-secondary)">${step}</div>
+            </div>
+        `;
+    });
+    html += '</div>';
+    resultsEl.innerHTML = html;
+}
+
+function updateProgressStep(stepIndex, message) {
+    const stepEl = document.getElementById(`progressStep${stepIndex}`);
+    if (stepEl) {
+        stepEl.style.opacity = '1';
+        const dot = stepEl.querySelector('.progress-dot');
+        if (dot) {
+            dot.style.background = 'var(--accent-400)';
+            dot.style.color = '#fff';
+            dot.textContent = '✓';
+        }
+        const text = stepEl.querySelector('div:last-child');
+        if (text) text.textContent = message || text.textContent;
+    }
+    // Mark previous steps as done
+    for (let i = 0; i < stepIndex; i++) {
+        const prev = document.getElementById(`progressStep${i}`);
+        if (prev) {
+            prev.style.opacity = '0.7';
+            const prevDot = prev.querySelector('.progress-dot');
+            if (prevDot) {
+                prevDot.style.background = 'var(--success)';
+                prevDot.style.color = '#fff';
+                prevDot.textContent = '✓';
+            }
+        }
+    }
+}
+
+function showProgressError(message) {
+    const progressEl = document.getElementById('analysisProgress');
+    if (!progressEl) return;
+    progressEl.innerHTML += `
+        <div style="margin-top:16px;padding:12px;background:rgba(239,68,68,0.1);border-radius:8px;border-left:3px solid var(--danger);color:var(--danger);font-size:13px">
+            <strong>分析失败：</strong>${escapeHtml(message)}
+        </div>
+    `;
 }
 
 function copyResultSection(type) {
@@ -3060,7 +3195,7 @@ ${gua.meaning}
 突破点：${pratitya.primary.breakPoint}`;
             break;
         case 'praxis':
-            text = `【实践论 · ${praxis.primary.name}】\n含义：${praxis.primary.meaning}\n表现：${praxis.primary.manifestation}\n在决策中：${praxis.primary.inDecision}\n突破点：${praxis.primary.breakPoint}\n\n反思问题：\n${praxis.primary.questions.map((q, i) => `${i+1}. ${q}`).join('\n')}`;
+            text = `【实践论 · ${praxis.primary.name}】\n含义：${praxis.primary.meaning}\n表现：${praxis.primary.manifestation}\n在决策中：${praxis.primary.inDecision}\n突破点：${praxis.primary.breakPoint}${praxis.primary.questions ? '\n\n反思问题：\n' + praxis.primary.questions.map((q, i) => `${i+1}. ${q}`).join('\n') : ''}`;
             break;
         case 'contradiction':
             text = `【矛盾论 · ${contradiction.primary.name}】
@@ -3075,7 +3210,7 @@ ${gua.meaning}
 ${cross}`;
             break;
         case 'phenomenology':
-            text = `【现象学分析 · ${phenomenology.primary.name}】\n含义：${phenomenology.primary.meaning}\n表现：${phenomenology.primary.manifestation}\n在决策中：${phenomenology.primary.inDecision}\n突破点：${phenomenology.primary.breakPoint}\n\n反思问题：\n${phenomenology.primary.questions.map((q, i) => `${i+1}. ${q}`).join('\n')}`;
+            text = `【现象学分析 · ${phenomenology.primary.name}】\n含义：${phenomenology.primary.meaning}\n表现：${phenomenology.primary.manifestation}\n在决策中：${phenomenology.primary.inDecision}\n突破点：${phenomenology.primary.breakPoint}${phenomenology.primary.questions ? '\n\n反思问题：\n' + phenomenology.primary.questions.map((q, i) => `${i+1}. ${q}`).join('\n') : ''}`;
             break;
         case 'stoic':
             text = `【斯多葛指南 · ${stoic.primary.name}】\n含义：${stoic.primary.meaning}\n表现：${stoic.primary.manifestation}\n在决策中：${stoic.primary.inDecision}\n突破点：${stoic.primary.breakPoint}\n日常练习：${stoic.primary.practice}`;

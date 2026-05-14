@@ -1,5 +1,52 @@
 # 易因 · 世界分析引擎 — 更新日志
 
+## v4.3.8 (2026-05-15) — Bug 修复与交互优化
+
+### 分析流程进度跟踪
+- **新增 11 步进度面板**：点击「开始分析」后实时展示每一步执行状态
+  1. 匹配现象学维度 → 2. 推演易经卦象 → 3. 分析十二因缘 → 4. 计算动爻变卦 → 5. 匹配实践论阶段 → 6. 分析矛盾结构 → 7. 匹配斯多葛原则 → 8. 生成交叉分析 → 9. 生成行动建议 → 10. 保存结果 → 11. 渲染结果
+- **步骤完成标记**：已完成的步骤显示绿色 ✓，当前步骤高亮，未到步骤置灰
+- **错误定位**：若某步失败，进度面板底部显示红色错误框，精确告知失败原因
+- **延时优化**：分析延时从 800ms 降至 100ms，减少等待感
+
+### 缺失函数补全
+- **新增 `determineMovingYao(scenario)`**：基于输入文本哈希生成 1-6 动爻，确保每次相同输入得到一致动爻
+- **新增 `calculateChangedGua(gua, movingYao)`**：根据动爻位置翻转阴阳爻，在 64 卦中查找匹配的变卦，符合易经原理
+- **新增 `analysisDepthConfig` + `getAnalysisDepth()`**：三级分析深度配置（简洁/标准/深度），修复之前 `analysisDepthConfig` 未定义导致的分析中断
+
+### 知识页面修复
+- **修复 5 个知识页面空白**：现象学、实践论、矛盾论、斯多葛、易经、十二因缘页面新增独立 View 容器
+- **新增 `switchView()` 路由**：侧边栏导航正确切换至各知识页面
+- **修复数据字段映射**：
+  - `praxisData` 使用 `stage` 字段排序
+  - `contradictionData` 使用 `stage` 字段排序
+  - `phenomenologyData` 使用 `order` 字段排序
+  - `stoicData` 使用 `order` 字段排序
+- **新增 `matchGua()` / `matchPratitya()`**：卦象和十二因缘的关键词匹配算法，与现有 `matchPraxis()` 保持一致
+
+### 数据字段安全修复
+- **修复 `stoic.primary.questions` 未定义错误**：stoicData 无 `questions` 字段，替换为 `practice`
+- **防御式访问**：`phenomenology.primary.questions` 和 `praxis.primary.questions` 添加存在性检查后再调用 `.map()`
+- **修复 `crossAnalysis4D` 模板**：第三套模板中斯多葛引用从 `questions[0]` 改为 `practice`
+
+### Service Worker 修复
+- **跳过跨域请求拦截**：fetch 事件开头判断 `event.request.url.includes('api.')` 直接 `return`，避免 LLM API 请求被 SW 拦截导致 `Returned response is null`
+- **保持缓存策略不变**：静态资源仍使用 stale-while-revalidate
+
+### LLM 连接修复
+- **新增 OpenRouter 提供商**：Kimi/DeepSeek 官方 API 无浏览器 CORS 支持，添加 OpenRouter 作为直连备选
+- **请求头配置**：OpenRouter 需 `HTTP-Referer` 和 `X-Title` headers
+- **流式输出补充**：`streamLLM()` 函数补全，支持 SSE 流式解析
+
+### 功能删除
+- **删除实时匹配能力**：移除 `updateLivePreview()` 函数及所有调用点，输入时不再实时显示匹配结果
+- **删除 livePreview DOM 容器**：index.html 中移除 `#livePreview` 元素
+
+### 代码健壮性
+- **analyze() 加 try/catch/finally**：确保即使中间步骤抛错，分析按钮状态也能恢复，错误信息通过 `showProgressError()` 展示在 UI 上
+
+---
+
 ## v4.1.0 (2026-05-12) — Round 6：LLM 深度解读 + 变卦逻辑修正（内核升级）
 
 ### LLM 深度解读（核心升级）
