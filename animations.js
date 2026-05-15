@@ -449,7 +449,6 @@ function openShortcutsHelp() {
           </div>
           <div class="shortcut-group">
             <div class="shortcut-group-title">其他</div>
-            <div class="shortcut-item"><kbd>⌘ T</kbd><span>时间起卦</span></div>
             <div class="shortcut-item"><kbd>⌘ ,</kbd><span>设置</span></div>
             <div class="shortcut-item"><kbd>⌘ 1</kbd><span>六十四卦</span></div>
             <div class="shortcut-item"><kbd>⌘ 2</kbd><span>十二因缘</span></div>

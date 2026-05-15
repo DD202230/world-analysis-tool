@@ -387,7 +387,6 @@ const state = {
     history: [],
     favorites: [],
     currentResult: null,
-    timeGua: null,
     compareList: JSON.parse(localStorage.getItem('yiyin_compare') || '[]'),
     currentTags: [],
     draftId: null,
@@ -561,7 +560,6 @@ const commands = [
     { id: 'share', label: '复制分享链接', shortcut: '⌘⇧S', icon: '🔗', action: () => { shareResult(); closeCmdPalette(); } },
     { id: 'image', label: '导出图片', shortcut: '⌘⇧I', icon: '🖼️', action: () => { openExportImage(); closeCmdPalette(); } },
     { id: 'clear', label: '清空输入', shortcut: '⌘⇧X', icon: '🗑️', action: () => { clearInput(); closeCmdPalette(); } },
-    { id: 'time', label: '时间起卦', shortcut: '⌘T', icon: '⏰', action: () => { refreshTimeGua(); closeCmdPalette(); } },
     { id: 'settings', label: '设置', shortcut: '⌘,', icon: '⚙️', action: () => { openSettings(); closeCmdPalette(); } },
     { id: 'depth', label: '切换分析深度', shortcut: '⌘D', icon: '🔬', action: () => { cycleAnalysisDepth(); closeCmdPalette(); } },
     { id: 'import', label: '导入数据', icon: '📥', action: () => { openImportModal(); closeCmdPalette(); } },
@@ -660,10 +658,6 @@ document.addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'x') {
         e.preventDefault();
         clearInput();
-    }
-    if ((e.metaKey || e.ctrlKey) && e.key === 't') {
-        e.preventDefault();
-        refreshTimeGua();
     }
     if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
         e.preventDefault();
@@ -880,83 +874,6 @@ function removeTag(tag) {
     renderTags();
 }
 
-// ════════════════════════════════════════
-// TIME DIVINATION
-// ════════════════════════════════════════
-function refreshTimeGua() {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth() + 1;
-    const day = now.getDate();
-    const hour = now.getHours();
-    const minute = now.getMinutes();
-
-    const upperNum = (year + month + day) % 8 || 8;
-    const lowerNum = (hour + minute + day) % 8 || 8;
-    const movingNum = (year + month + day + hour + minute) % 6 || 6;
-
-    const trigramMap = ['', '☰', '☱', '☲', '☳', '☴', '☵', '☶', '☷'];
-    const trigramNames = ['', '乾', '兑', '离', '震', '巽', '坎', '艮', '坤'];
-
-    const upper = trigramMap[upperNum];
-    const lower = trigramMap[lowerNum];
-    const upperName = trigramNames[upperNum];
-    const lowerName = trigramNames[lowerNum];
-
-    let matchedGua = null;
-    for (let key in guaData) {
-        if (guaData[key].trigrams &&
-            guaData[key].trigrams.upper === upperName &&
-            guaData[key].trigrams.lower === lowerName) {
-            matchedGua = guaData[key];
-            break;
-        }
-    }
-
-    if (!matchedGua) {
-        matchedGua = guaData.qian;
-    }
-
-    state.timeGua = {
-        gua: matchedGua,
-        upper: upperName,
-        lower: lowerName,
-        moving: movingNum,
-        time: now.toLocaleString('zh-CN')
-    };
-
-    renderTimeDivination();
-    showToast('时间起卦已更新');
-}
-
-function renderTimeDivination() {
-    const body = document.getElementById('timeDivinationBody');
-    if (!state.timeGua) {
-        refreshTimeGua();
-        return;
-    }
-
-    const { gua, upper, lower, moving, time } = state.timeGua;
-    body.innerHTML = `
-        <div class="time-gua-display">
-            <div class="time-gua-symbol">${gua.symbol}</div>
-            <div class="time-gua-name">${gua.name}</div>
-        </div>
-        <div class="time-divination-info">
-            <p><strong style="color:var(--text-primary)">${gua.fullname}</strong> · ${gua.phase}</p>
-            <p style="margin-top:4px">上卦${upper} · 下卦${lower} · 动爻第${moving}爻</p>
-            <p style="margin-top:4px;color:var(--text-tertiary)">${time}</p>
-        </div>
-        <div class="time-divination-actions">
-            <button class="header-btn primary" onclick="useTimeGua()">采用此卦</button>
-        </div>
-    `;
-}
-
-function useTimeGua() {
-    if (!state.timeGua) return;
-    showToast(`已采用 ${state.timeGua.gua.fullname}`);
-}
 
 // ════════════════════════════════════════
 // HISTORY (IndexedDB)
@@ -2395,7 +2312,7 @@ function toggleSetting(key, value) {
 async function exportAllData() {
     const history = await dbGetAll('history');
     const settings = await dbGetAll('settings');
-    const data = { history, settings, exportedAt: new Date().toISOString(), version: '4.5.3' };
+    const data = { history, settings, exportedAt: new Date().toISOString(), version: '4.5.8' };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -3643,7 +3560,6 @@ loadHistoryFromDB().then(() => {
 });
 updateCompareBadge();
 updateCharCount();
-renderTimeDivination();
 renderTags();
 
 // ════════════════════════════════════════

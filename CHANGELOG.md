@@ -1,5 +1,9 @@
 # 易因 · 世界分析引擎 — 更新日志
 
+## v4.5.8 (2026-05-15) — 移除时间起卦
+
+- **删除「时间起卦」功能**：从「新建分析」页面彻底移除时间起卦卡片，包括 HTML 结构、JavaScript 逻辑（`refreshTimeGua`、`renderTimeDivination`、`useTimeGua`）、键盘快捷键（⌘T）、命令面板入口、快捷键帮助文档，以及所有相关 CSS 样式
+
 ## v4.5.7 (2026-05-15) — 移动端新建分析页面 CSS 层叠修复与极致窄屏适配
 
 - **修复 CSS 媒体查询层叠冲突**：删除文件末尾重复的 `@media (max-width: 768px)`，该媒体查询此前覆盖了 `@media (max-width: 480px)` 中的 `.hero-title` 和 `.content` 规则，导致极小屏幕上的样式未生效

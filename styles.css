@@ -846,71 +846,6 @@ body {
 
 .option-chip .chip-desc { font-size: 11px; color: var(--text-tertiary); }
 
-/* ════════════════════════════════════════
-   TIME DIVINATION
-   ════════════════════════════════════════ */
-.time-divination {
-    margin-top: var(--space-5);
-    padding: var(--space-4);
-    background: linear-gradient(135deg, rgba(201,169,110,0.03), rgba(90,154,110,0.03));
-    border: 1px solid var(--border-accent);
-    border-radius: var(--radius-lg);
-}
-
-.time-divination-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--space-3);
-}
-
-.time-divination-title {
-    font-size: 13px; font-weight: 500;
-    color: var(--accent-300);
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-}
-
-.time-divination-body {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
-}
-
-.time-gua-display {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--space-1);
-}
-
-.time-gua-symbol {
-    width: 48px; height: 48px;
-    background: linear-gradient(135deg, var(--accent-glow), rgba(201,169,110,0.05));
-    border: 1px solid var(--border-accent);
-    border-radius: var(--radius-lg);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 24px;
-    color: var(--accent-300);
-    font-family: var(--font-serif);
-}
-
-.time-gua-name { font-size: 12px; color: var(--text-secondary); }
-
-.time-divination-info { flex: 1; }
-
-.time-divination-info p {
-    font-size: 13px;
-    color: var(--text-secondary);
-    line-height: 1.7;
-}
-
-.time-divination-actions {
-    display: flex;
-    gap: var(--space-2);
-    margin-top: var(--space-3);
-}
 
 /* ════════════════════════════════════════
    ANALYZE BUTTON
@@ -2126,11 +2061,7 @@ body.reduced-motion .yao-line {
     .hero-title { font-size: 22px; letter-spacing: 2px; }
     .hero-subtitle { font-size: 13px; max-width: 100%; }
     .btn-analyze { padding: var(--space-3) var(--space-4); font-size: 14px; }
-    .time-divination-body { flex-wrap: wrap; gap: var(--space-2); }
-    .time-divination-actions { margin-top: 0; width: 100%; }
-    .time-divination-actions button { width: 100%; justify-content: center; }
     .main-textarea { padding: var(--space-3); font-size: 14px; }
-    .time-divination { padding: var(--space-3); }
     .option-chip { padding: var(--space-2) var(--space-3); }
     .hero { padding: var(--space-8) 0 var(--space-6); }
 }
@@ -3036,30 +2967,6 @@ html {
     transform: translateY(-1px);
 }
 
-/* ════════════════════════════════════════
-   TIME DIVINATION ENHANCED
-   ════════════════════════════════════════ */
-.time-divination {
-    position: relative;
-    overflow: hidden;
-}
-
-.time-divination::before {
-    content: '';
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle, rgba(201,169,110,0.03) 0%, transparent 70%);
-    animation: rotate 20s linear infinite;
-    pointer-events: none;
-}
-
-@keyframes rotate {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
 
 /* ════════════════════════════════════════
    ACTION ITEM ENHANCED
