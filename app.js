@@ -2312,7 +2312,7 @@ function toggleSetting(key, value) {
 async function exportAllData() {
     const history = await dbGetAll('history');
     const settings = await dbGetAll('settings');
-    const data = { history, settings, exportedAt: new Date().toISOString(), version: '4.5.8' };
+    const data = { history, settings, exportedAt: new Date().toISOString(), version: '4.5.9' };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
