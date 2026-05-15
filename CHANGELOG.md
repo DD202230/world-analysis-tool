@@ -1,5 +1,19 @@
 # 易因 · 世界分析引擎 — 更新日志
 
+## v4.5.9 (2026-05-15) — 优化新建分析页面布局适配
+
+### 布局优化
+- **`.content` 最大宽度放宽**：从 760px 增至 900px，大屏下新建分析页面更舒展
+- **防止 flex 溢出**：`.main` / `.content` 添加 `width: 100%` + `min-width: 0`
+- **输入卡片宽度保护**：`.input-card` 添加 `width: 100%` + `box-sizing: border-box`
+- **选项芯片最小宽度**：`.option-chip` 添加 `min-width: 120px` / `max-width: 100%`
+- **全局最小视口**：`html` 添加 `min-width: 320px`，防止页面在极小屏幕上过度缩窄
+
+### 移动端适配
+- **选项网格自适应**：768px 下 `options-grid` 使用 `minmax(140px, 1fr)`
+- **极小屏幕单列**：480px 下选项网格改为单列，`option-chip` 宽度 100%
+- **padding 进一步压缩**：移动端 `.content`、`.input-card`、`.result-card` 等内边距再减小，释放更多可用宽度
+
 ## v4.5.8 (2026-05-15) — 移除时间起卦
 
 - **删除「时间起卦」功能**：从「新建分析」页面彻底移除时间起卦卡片，包括 HTML 结构、JavaScript 逻辑（`refreshTimeGua`、`renderTimeDivination`、`useTimeGua`）、键盘快捷键（⌘T）、命令面板入口、快捷键帮助文档，以及所有相关 CSS 样式
