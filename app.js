@@ -387,7 +387,6 @@ const state = {
     history: [],
     favorites: [],
     currentResult: null,
-    compareList: JSON.parse(localStorage.getItem('yiyin_compare') || '[]'),
     currentTags: [],
     draftId: null,
     analysisDepth: 'standard',
@@ -396,7 +395,7 @@ const state = {
         animations: true,
         soundEffects: false,
         compactMode: false,
-        llmMode: false,
+        llmMode: true,
         llmProvider: 'kimi',
         llmModel: 'kimi-k2.6',
         llmApiKey: ''
@@ -550,15 +549,11 @@ const commands = [
     { id: 'new', label: '新建分析', shortcut: '⌘N', icon: '⚡', action: () => { switchView('analyze'); closeCmdPalette(); } },
     { id: 'history', label: '查看历史', shortcut: '⌘H', icon: '📜', action: () => { switchView('history'); closeCmdPalette(); } },
     { id: 'favorites', label: '查看收藏', shortcut: '⌘⇧F', icon: '⭐', action: () => { switchView('favorites'); closeCmdPalette(); } },
-    { id: 'compare', label: '对比模式', shortcut: '⌘⇧C', icon: '⚖️', action: () => { switchView('compare'); closeCmdPalette(); } },
     { id: 'gua', label: '六十四卦', shortcut: '⌘1', icon: '☰', action: () => { switchView('gua'); closeCmdPalette(); } },
     { id: 'pratitya', label: '十二因缘', shortcut: '⌘2', icon: '☸', action: () => { switchView('pratitya'); closeCmdPalette(); } },
     { id: 'praxis', label: '实践论', shortcut: '⌘3', icon: '实', action: () => { switchView('praxis'); closeCmdPalette(); } },
     { id: 'contradiction', label: '矛盾论', shortcut: '⌘4', icon: '矛', action: () => { switchView('contradiction'); closeCmdPalette(); } },
-    { id: 'export', label: '导出 Markdown', shortcut: '⌘E', icon: '📥', action: () => { exportResult('markdown'); closeCmdPalette(); } },
-    { id: 'pdf', label: '导出 PDF', shortcut: '⌘⇧P', icon: '📄', action: () => { exportResult('pdf'); closeCmdPalette(); } },
     { id: 'share', label: '复制分享链接', shortcut: '⌘⇧S', icon: '🔗', action: () => { shareResult(); closeCmdPalette(); } },
-    { id: 'image', label: '导出图片', shortcut: '⌘⇧I', icon: '🖼️', action: () => { openExportImage(); closeCmdPalette(); } },
     { id: 'clear', label: '清空输入', shortcut: '⌘⇧X', icon: '🗑️', action: () => { clearInput(); closeCmdPalette(); } },
     { id: 'settings', label: '设置', shortcut: '⌘,', icon: '⚙️', action: () => { openSettings(); closeCmdPalette(); } },
     { id: 'depth', label: '切换分析深度', shortcut: '⌘D', icon: '🔬', action: () => { cycleAnalysisDepth(); closeCmdPalette(); } },
@@ -631,25 +626,9 @@ document.addEventListener('keydown', (e) => {
         e.preventDefault();
         switchView('favorites');
     }
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'c') {
-        e.preventDefault();
-        switchView('compare');
-    }
-    if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
-        e.preventDefault();
-        exportResult('markdown');
-    }
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 's') {
         e.preventDefault();
         shareResult();
-    }
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'i') {
-        e.preventDefault();
-        openExportImage();
-    }
-    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'p') {
-        e.preventDefault();
-        exportResult('pdf');
     }
     if ((e.metaKey || e.ctrlKey) && e.key === ',') {
         e.preventDefault();
@@ -665,8 +644,6 @@ document.addEventListener('keydown', (e) => {
     }
     if (e.key === 'Escape') {
         closeCmdPalette();
-        closeCompareModal();
-        closeExportImage();
         closeSettings();
         closeAnalysisModal();
         const so = document.getElementById('shortcutsOverlay');
@@ -703,7 +680,6 @@ function switchView(view) {
         analyze: '新建分析',
         history: '历史记录',
         favorites: '收藏',
-        compare: '对比分析',
         gua: '六十四卦',
         pratitya: '十二因缘',
         phenomenology: '现象学',
@@ -713,9 +689,9 @@ function switchView(view) {
     };
     document.getElementById('pageTitle').textContent = titles[view] || '易因';
 
-    const views = ['analyze', 'history', 'favorites', 'compare', 'gua', 'pratitya', 'phenomenology', 'praxis', 'contradiction', 'stoic'];
+    const views = ['analyze', 'history', 'favorites', 'gua', 'pratitya', 'phenomenology', 'praxis', 'contradiction', 'stoic'];
     const currentEl = document.getElementById(previousView + 'View');
-    
+
     views.forEach(v => {
         const el = document.getElementById(v + 'View');
         if (el) {
@@ -734,7 +710,6 @@ function switchView(view) {
     if (view === 'analyze') showAnalyzeSetup();
     if (view === 'history') { renderHistoryView(); setTimeout(() => window.YIYIN_ANIMATIONS?.animateHistoryCards(), 100); }
     if (view === 'favorites') renderFavoritesView();
-    if (view === 'compare') renderCompareView();
     // Knowledge views: trigger render if not yet rendered by IntersectionObserver
     if (view === 'gua' && knowledgeViewRenderers.gua && !knowledgeViewRenderers.gua.rendered) {
         knowledgeViewRenderers.gua.fn(); knowledgeViewRenderers.gua.rendered = true;
@@ -939,7 +914,7 @@ function loadHistory(id) {
         const navItem = document.querySelector('[data-nav="analyze"]');
         if (navItem) navItem.classList.add('active');
         document.getElementById('pageTitle').textContent = '新建分析';
-        const views = ['analyze', 'history', 'favorites', 'compare', 'gua', 'pratitya', 'phenomenology', 'praxis', 'contradiction', 'stoic'];
+        const views = ['analyze', 'history', 'favorites', 'gua', 'pratitya', 'phenomenology', 'praxis', 'contradiction', 'stoic'];
         views.forEach(v => {
             const el = document.getElementById(v + 'View');
             if (el) el.style.display = v === 'analyze' ? 'block' : 'none';
@@ -981,48 +956,6 @@ async function deleteHistory(id, event) {
     if (state.currentView === 'history') renderHistoryView();
     if (state.currentView === 'favorites') renderFavoritesView();
     showToast('已删除');
-}
-
-function addToCompare(id, event) {
-    if (event) event.stopPropagation();
-    const item = state.history.find(h => h.id === id);
-    if (!item) return;
-
-    if (state.compareList.find(c => c.id === id)) {
-        showToast('已在对比列表中');
-        return;
-    }
-
-    if (state.compareList.length >= 4) {
-        showToast('对比最多选择4项');
-        return;
-    }
-
-    state.compareList.push({ id: item.id, result: item.fullResult });
-    localStorage.setItem('yiyin_compare', JSON.stringify(state.compareList));
-    updateCompareBadge();
-    showToast(`已加入对比 (${state.compareList.length}/4)`);
-}
-
-function removeFromCompare(id) {
-    state.compareList = state.compareList.filter(c => c.id !== id);
-    localStorage.setItem('yiyin_compare', JSON.stringify(state.compareList));
-    updateCompareBadge();
-    if (state.currentView === 'compare') renderCompareView();
-}
-
-function clearCompare() {
-    state.compareList = [];
-    localStorage.setItem('yiyin_compare', JSON.stringify(state.compareList));
-    updateCompareBadge();
-    renderCompareView();
-    showToast('对比列表已清空');
-}
-
-function updateCompareBadge() {
-    const badge = document.getElementById('compareCount');
-    badge.textContent = state.compareList.length;
-    badge.style.display = state.compareList.length > 0 ? 'inline-flex' : 'none';
 }
 
 async function clearAllHistory() {
@@ -1089,12 +1022,6 @@ function renderHistoryView() {
                                     <button class="history-card-action ${h.favorited ? 'favorited' : ''}" onclick="toggleFavorite(${h.id}, event)">
                                         ${h.favorited ? '★' : '☆'}
                                     </button>
-                                    <button class="history-card-action" onclick="addToCompare(${h.id}, event)" title="加入对比">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <rect x="2" y="3" width="20" height="6" rx="2"></rect>
-                                            <rect x="2" y="15" width="20" height="6" rx="2"></rect>
-                                        </svg>
-                                    </button>
                                     <button class="history-card-action" onclick="deleteHistory(${h.id}, event)">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M3 6h18"></path>
@@ -1105,9 +1032,7 @@ function renderHistoryView() {
                             </div>
                             <div class="history-card-meta">
                                 <div class="history-card-tags">
-                                    <span class="tag tag-yang">${h.guaFull}</span>
-                                    <span class="tag tag-phase">${h.pratitya}</span>
-                                    ${(h.tags || []).map(t => `<span class="tag tag-info">${t}</span>`).join('')}
+                                        ${(h.tags || []).map(t => `<span class="tag tag-info">${t}</span>`).join('')}
                                 </div>
                                 <span class="history-card-date">${formatRelativeTime(h.timestamp)}</span>
                             </div>
@@ -1176,109 +1101,6 @@ function renderFavoritesView() {
 }
 
 // ════════════════════════════════════════
-// COMPARE MODE
-// ════════════════════════════════════════
-function renderCompareView() {
-    const stats = document.getElementById('compareStats');
-    const grid = document.getElementById('compareGrid');
-
-    if (state.compareList.length === 0) {
-        stats.innerHTML = '';
-        grid.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">⚖️</div>
-                <div class="empty-title">暂无对比项</div>
-                <div class="empty-desc">在历史记录中点击对比图标添加分析到对比列表</div>
-            </div>
-        `;
-        return;
-    }
-
-    const guaCounts = {};
-    const pratityaCounts = {};
-    state.compareList.forEach(c => {
-        const g = c.result.gua.name;
-        const p = c.result.pratitya.primary.name;
-        guaCounts[g] = (guaCounts[g] || 0) + 1;
-        pratityaCounts[p] = (pratityaCounts[p] || 0) + 1;
-    });
-
-    stats.innerHTML = `
-        <div class="stat-card">
-            <div class="stat-value">${state.compareList.length}</div>
-            <div class="stat-label">对比项</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">${Object.keys(guaCounts).length}</div>
-            <div class="stat-label">不同卦象</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">${Object.keys(pratityaCounts).length}</div>
-            <div class="stat-label">不同卡点</div>
-        </div>
-    `;
-
-    if (state.compareList.length < 2) {
-        grid.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-icon">⚖️</div>
-                <div class="empty-title">再添加${2 - state.compareList.length}项</div>
-                <div class="empty-desc">对比需要至少2项分析，当前已有 ${state.compareList.length} 项</div>
-            </div>
-        `;
-        return;
-    }
-
-    const labels = ['A', 'B', 'C', 'D'];
-    const cols = state.compareList.map((c, i) => `
-        <div class="compare-col">
-            <div class="compare-col-header">分析 ${labels[i]}</div>
-            ${renderCompareCol(c.result)}
-            <button class="header-btn" style="margin-top:12px;width:100%" onclick="removeFromCompare(${c.id})">移除</button>
-        </div>
-    `).join('');
-    
-    grid.innerHTML = cols;
-    // Adjust grid columns based on count
-    grid.style.gridTemplateColumns = `repeat(${state.compareList.length}, 1fr)`;
-}
-
-function renderCompareCol(result) {
-    const { gua, pratitya, cross, actions } = result;
-    return `
-        <div style="margin-bottom:16px">
-            <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px">卦象</div>
-            <div style="font-size:18px;font-family:var(--font-serif);color:var(--accent-300)">${gua.fullname}</div>
-            <div style="font-size:13px;color:var(--text-secondary);margin-top:4px">${gua.phase} · ${gua.nature}</div>
-        </div>
-        <div style="margin-bottom:16px">
-            <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px">主要卡点</div>
-            <div style="font-size:16px;color:var(--text-primary)">${pratitya.primary.name}</div>
-            <div style="font-size:13px;color:var(--text-secondary);margin-top:4px">${pratitya.primary.meaning}</div>
-        </div>
-        <div style="margin-bottom:16px">
-            <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:4px">交叉分析</div>
-            <div style="font-size:13px;color:var(--text-secondary);line-height:1.7">${cross}</div>
-        </div>
-        <div>
-            <div style="font-size:12px;color:var(--text-tertiary);margin-bottom:8px">干预建议</div>
-            ${actions.map((action, i) => `
-                <div class="action-item" style="margin-bottom:8px">
-                    <div class="action-num">${i + 1}</div>
-                    <div class="action-content">
-                        <h5>${action.title}</h5>
-                        <p>${action.desc}</p>
-                    </div>
-                </div>
-            `).join('')}
-        </div>
-    `;
-}
-
-function closeCompareModal() {
-    document.getElementById('compareModal').classList.remove('active');
-}
-
 // ════════════════════════════════════════
 // GUA VIEW
 // ════════════════════════════════════════
@@ -1400,666 +1222,6 @@ function renderPratityaView() {
 // ════════════════════════════════════════
 // EXPORT & SHARE
 // ════════════════════════════════════════
-function exportResult(format) {
-    if (!state.currentResult) {
-        showToast('请先进行分析');
-        return;
-    }
-
-    if (format === 'json') {
-        const data = JSON.stringify(state.currentResult, null, 2);
-        const blob = new Blob([data], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `yiyin-analysis-${Date.now()}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('JSON 已导出');
-    } else if (format === 'markdown') {
-        const { gua, pratitya, cross, actions, scenario } = state.currentResult;
-        const md = `# 易因分析报告
-
-|**分析时间**: ${new Date().toLocaleString('zh-CN')}
-|**分析场景**: ${scenario}
-
----
-
-## 卦象 · ${gua.fullname}
-
-- **卦符**: ${gua.symbol}
-- **性质**: ${gua.nature}
-- **阶段**: ${gua.phase}
-
-### 卦象释义
-${gua.meaning}
-
-### 当前位置
-${gua.position}
-
-### 危险警示
-${gua.danger}
-
-### 转化方向
-${gua.transform}
-
----
-
-## 十二因缘 · ${pratitya.primary.name}
-
-### 主要卡点
-- **含义**: ${pratitya.primary.meaning}
-- **表现**: ${pratitya.primary.manifestation}
-- **在决策中**: ${pratitya.primary.inDecision}
-- **突破点**: ${pratitya.primary.breakPoint}
-
-${pratitya.secondary ? `### 次要卡点 · ${pratitya.secondary.name}
-- **含义**: ${pratitya.secondary.meaning}
-- **突破点**: ${pratitya.secondary.breakPoint}
-` : ''}
-
----
-
-## 交叉分析
-
-${cross}
-
----
-
-## 干预建议
-
-${actions.map((a, i) => `${i + 1}. **${a.title}**: ${a.desc}`).join('\n\n')}
-
----
-
-*由 易因 · 世界分析引擎 生成*`;
-
-        const blob = new Blob([md], { type: 'text/markdown' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `yiyin-analysis-${Date.now()}.md`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('Markdown 已导出');
-    } else if (format === 'pdf') {
-        exportToPDF();
-    } else if (format === 'image') {
-        exportToImage();
-    }
-}
-
-function exportToPDF() {
-    const { gua, pratitya, cross, actions, scenario, movingYao, changedGua } = state.currentResult;
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-        showToast('请允许弹出窗口以导出 PDF');
-        return;
-    }
-
-    const html = `<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<title>易因分析报告</title>
-<style>
-@page { size: A4; margin: 2cm; }
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-    font-family: 'Noto Serif SC', 'Songti SC', serif;
-    font-size: 11pt;
-    line-height: 1.8;
-    color: #333;
-    background: #fff;
-    padding: 40px;
-    max-width: 800px;
-    margin: 0 auto;
-}
-.header {
-    text-align: center;
-    padding-bottom: 30px;
-    border-bottom: 2px solid #c9a96e;
-    margin-bottom: 30px;
-}
-.header h1 {
-    font-size: 28pt;
-    color: #1a1a2e;
-    letter-spacing: 8px;
-    margin-bottom: 8px;
-}
-.header .subtitle {
-    font-size: 12pt;
-    color: #666;
-}
-.header .meta {
-    font-size: 10pt;
-    color: #999;
-    margin-top: 12px;
-}
-.section {
-    margin-bottom: 28px;
-    page-break-inside: avoid;
-}
-.section-title {
-    font-size: 14pt;
-    font-weight: 700;
-    color: #1a1a2e;
-    margin-bottom: 12px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid #e0e0e0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-.section-title .symbol {
-    font-size: 20pt;
-    color: #c9a96e;
-}
-.tag {
-    display: inline-block;
-    padding: 2px 10px;
-    background: #f5f0e8;
-    border: 1px solid #e0d5c0;
-    border-radius: 4px;
-    font-size: 9pt;
-    color: #8a7a5a;
-    margin-right: 6px;
-    margin-bottom: 6px;
-}
-.gua-header {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 16px;
-}
-.gua-symbol {
-    width: 60px; height: 60px;
-    background: linear-gradient(135deg, #f5f0e8, #e8e0d0);
-    border: 1px solid #d0c8b8;
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 28pt;
-    color: #c9a96e;
-    flex-shrink: 0;
-}
-.gua-info h2 {
-    font-size: 18pt;
-    color: #1a1a2e;
-    letter-spacing: 4px;
-}
-.gua-info .phase {
-    font-size: 10pt;
-    color: #666;
-    margin-top: 4px;
-}
-.content-block {
-    margin-bottom: 16px;
-}
-.content-block h4 {
-    font-size: 11pt;
-    font-weight: 600;
-    color: #444;
-    margin-bottom: 6px;
-}
-.content-block p {
-    font-size: 10.5pt;
-    color: #555;
-    line-height: 1.8;
-}
-.action-item {
-    display: flex;
-    gap: 12px;
-    margin-bottom: 12px;
-    padding: 12px;
-    background: #faf8f5;
-    border-radius: 6px;
-    border-left: 3px solid #c9a96e;
-}
-.action-num {
-    width: 24px; height: 24px;
-    background: #c9a96e;
-    color: #fff;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10pt;
-    font-weight: 700;
-    flex-shrink: 0;
-}
-.action-content h5 {
-    font-size: 10.5pt;
-    font-weight: 600;
-    color: #8a7a5a;
-    margin-bottom: 4px;
-}
-.action-content p {
-    font-size: 10pt;
-    color: #666;
-    line-height: 1.6;
-}
-.chain {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 4px;
-    margin: 12px 0;
-    padding: 12px;
-    background: #faf8f5;
-    border-radius: 6px;
-}
-.chain-node {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 9pt;
-    background: #e8e0d0;
-    color: #5a5040;
-}
-.chain-node.active {
-    background: #c9a96e;
-    color: #fff;
-}
-.chain-arrow {
-    color: #999;
-    font-size: 9pt;
-}
-.footer {
-    margin-top: 40px;
-    padding-top: 20px;
-    border-top: 1px solid #e0e0e0;
-    text-align: center;
-    font-size: 9pt;
-    color: #999;
-}
-.yao-lines {
-    margin: 12px 0;
-}
-.yao-line {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 6px 0;
-    font-size: 10pt;
-}
-.yao-bar {
-    width: 40px;
-    height: 3px;
-    background: #c9a96e;
-    border-radius: 2px;
-}
-.yao-bar.yin {
-    background: transparent;
-    border-top: 3px solid #999;
-    border-bottom: 3px solid #999;
-    height: 8px;
-}
-.yao-label {
-    font-size: 9pt;
-    color: #999;
-    min-width: 36px;
-}
-.yao-text {
-    flex: 1;
-    color: #555;
-}
-@media print {
-    body { padding: 0; }
-    .no-print { display: none; }
-}
-</style>
-</head>
-<body>
-<div class="header">
-    <h1>易因分析报告</h1>
-    <div class="subtitle">以易经六十四卦理解世界规律，以佛教十二因缘洞察人性驱动</div>
-    <div class="meta">分析时间：${new Date().toLocaleString('zh-CN')} · 场景：${scenario.slice(0, 80)}${scenario.length > 80 ? '...' : ''}</div>
-</div>
-
-<div class="section">
-    <div class="gua-header">
-        <div class="gua-symbol">${gua.symbol}</div>
-        <div class="gua-info">
-            <h2>${gua.fullname}</h2>
-            <div class="phase">${gua.nature} · ${gua.phase}</div>
-            <div style="margin-top:8px">
-                ${gua.keywords.map(k => `<span class="tag">${k}</span>`).join('')}
-            </div>
-        </div>
-    </div>
-    <div class="content-block">
-        <h4>卦象释义</h4>
-        <p>${gua.meaning}</p>
-    </div>
-    <div class="content-block">
-        <h4>当前位置</h4>
-        <p>${gua.position}</p>
-    </div>
-    <div class="content-block">
-        <h4>危险警示</h4>
-        <p style="color:#c94f4f">${gua.danger}</p>
-    </div>
-    <div class="content-block">
-        <h4>转化方向</h4>
-        <p style="color:#5a9a6e">${gua.transform}</p>
-    </div>
-    ${movingYao ? `
-    <div class="content-block">
-        <h4>动爻与变卦</h4>
-        <p>第${movingYao}爻动，变卦为${changedGua ? changedGua.fullname : '未知'}。事物将向「${changedGua ? changedGua.phase : '未知'}」方向演化。</p>
-    </div>
-    ` : ''}
-</div>
-
-<div class="section">
-    <div class="section-title"><span class="symbol">☸</span> 十二因缘分析</div>
-    <div class="chain">
-        ${pratitya.chain.map((node, i) => `
-            <span class="chain-node ${node.isPrimary ? 'active' : ''}">${node.data.name}</span>
-            ${i < pratitya.chain.length - 1 ? '<span class="chain-arrow">→</span>' : ''}
-        `).join('')}
-    </div>
-    <div style="margin-bottom:12px">
-        <span class="tag">主要卡点：${pratitya.primary.name}</span>
-        ${pratitya.secondary ? `<span class="tag">次要卡点：${pratitya.secondary.name}</span>` : ''}
-    </div>
-    <div class="content-block">
-        <h4>主要卡点 · ${pratitya.primary.name}</h4>
-        <p><strong>含义：</strong>${pratitya.primary.meaning}</p>
-        <p><strong>表现：</strong>${pratitya.primary.manifestation}</p>
-        <p><strong>在决策中：</strong>${pratitya.primary.inDecision}</p>
-        <p><strong style="color:#5a9a6e">突破点：</strong>${pratitya.primary.breakPoint}</p>
-    </div>
-    ${pratitya.secondary ? `
-    <div class="content-block">
-        <h4>次要卡点 · ${pratitya.secondary.name}</h4>
-        <p><strong>含义：</strong>${pratitya.secondary.meaning}</p>
-        <p><strong style="color:#5a9a6e">突破点：</strong>${pratitya.secondary.breakPoint}</p>
-    </div>
-    ` : ''}
-</div>
-
-<div class="section">
-    <div class="section-title"><span class="symbol">◈</span> 交叉分析</div>
-    <div class="content-block">
-        <p>${cross}</p>
-    </div>
-</div>
-
-<div class="section">
-    <div class="section-title"><span class="symbol">◉</span> 干预建议</div>
-    ${actions.map((action, i) => `
-        <div class="action-item">
-            <div class="action-num">${i + 1}</div>
-            <div class="action-content">
-                <h5>${action.title}</h5>
-                <p>${action.desc}</p>
-            </div>
-        </div>
-    `).join('')}
-</div>
-
-<div class="footer">
-    <p>由 易因 · 世界分析引擎 生成 · yiyin.app</p>
-    <p class="no-print" style="margin-top:8px;color:#c9a96e">请使用浏览器「打印 → 另存为 PDF」功能保存此报告</p>
-</div>
-<script>
-    window.onload = function() {
-        setTimeout(function() { window.print(); }, 500);
-    };
-</script>
-</body>
-</html>`;
-
-    printWindow.document.write(html);
-    printWindow.document.close();
-    showToast('PDF 打印窗口已打开');
-}
-
-function exportToImage() {
-    const resultsEl = document.getElementById('results');
-    if (!resultsEl || !state.currentResult) {
-        showToast('没有可导出的结果');
-        return;
-    }
-    showToast('正在生成图片...', 'info');
-    
-    // Use html2canvas-like approach with better reliability
-    const rect = resultsEl.getBoundingClientRect();
-    const scale = 2;
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(rect.width, 600) * scale;
-    canvas.height = Math.max(rect.height, 400) * scale;
-    const ctx = canvas.getContext('2d');
-    ctx.scale(scale, scale);
-    
-    // Background
-    const gradient = ctx.createLinearGradient(0, 0, 0, rect.height);
-    gradient.addColorStop(0, '#0c0e1a');
-    gradient.addColorStop(1, '#0a0c14');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, canvas.width / scale, canvas.height / scale);
-    
-    // Header
-    ctx.fillStyle = '#c9a96e';
-    ctx.font = 'bold 20px "Noto Serif SC", serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('易因 · 分析报告', canvas.width / scale / 2, 40);
-    
-    ctx.fillStyle = 'rgba(240,240,245,0.4)';
-    ctx.font = '12px Inter, sans-serif';
-    ctx.fillText(new Date().toLocaleString('zh-CN'), canvas.width / scale / 2, 62);
-    
-    // Divider
-    ctx.strokeStyle = 'rgba(201,169,110,0.2)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(40, 78);
-    ctx.lineTo(canvas.width / scale - 40, 78);
-    ctx.stroke();
-    
-    let y = 100;
-    const { gua, pratitya, cross, actions, movingYao, changedGua, scenario } = state.currentResult;
-    const w = canvas.width / scale;
-    
-    // Scenario
-    ctx.fillStyle = 'rgba(240,240,245,0.5)';
-    ctx.font = '11px Inter, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('分析场景', 40, y);
-    y += 18;
-    ctx.fillStyle = '#f0f0f5';
-    ctx.font = '13px Inter, sans-serif';
-    const scenarioText = scenario.length > 120 ? scenario.slice(0, 120) + '...' : scenario;
-    wrapText(ctx, scenarioText, 40, y, w - 80, 20);
-    y += measureTextHeight(ctx, scenarioText, w - 80, 20) + 24;
-    
-    // Gua Section
-    y = drawSectionHeader(ctx, '卦象 · ' + gua.fullname, w / 2, y);
-    y += 16;
-    
-    ctx.fillStyle = '#c9a96e';
-    ctx.font = 'bold 32px "Noto Serif SC", serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(gua.symbol, 80, y + 20);
-    
-    ctx.fillStyle = '#f0f0f5';
-    ctx.font = 'bold 16px "Noto Serif SC", serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(gua.fullname, 120, y + 8);
-    ctx.fillStyle = 'rgba(240,240,245,0.5)';
-    ctx.font = '12px Inter, sans-serif';
-    ctx.fillText(gua.nature + ' · ' + gua.phase, 120, y + 26);
-    y += 50;
-    
-    y = drawContentBlock(ctx, '卦象释义', gua.meaning, 40, y, w - 80);
-    y = drawContentBlock(ctx, '危险警示', gua.danger, 40, y, w - 80, '#c94f4f');
-    y = drawContentBlock(ctx, '转化方向', gua.transform, 40, y, w - 80, '#5a9a6e');
-    
-    if (movingYao) {
-        y = drawContentBlock(ctx, '动爻与变卦', `第${movingYao}爻动，变卦为${changedGua ? changedGua.fullname : '未知'}`, 40, y, w - 80, '#6b8cae');
-    }
-    
-    y += 20;
-    
-    // Pratitya Section
-    y = drawSectionHeader(ctx, '十二因缘 · ' + pratitya.primary.name, w / 2, y);
-    y += 16;
-    
-    y = drawContentBlock(ctx, '主要卡点 · ' + pratitya.primary.name, 
-        `含义：${pratitya.primary.meaning}\n表现：${pratitya.primary.manifestation}\n突破点：${pratitya.primary.breakPoint}`, 
-        40, y, w - 80);
-    
-    if (pratitya.secondary) {
-        y = drawContentBlock(ctx, '次要卡点 · ' + pratitya.secondary.name,
-            `含义：${pratitya.secondary.meaning}\n突破点：${pratitya.secondary.breakPoint}`,
-            40, y, w - 80);
-    }
-    
-    y += 20;
-    
-    // Cross Analysis
-    y = drawSectionHeader(ctx, '交叉分析', w / 2, y);
-    y += 16;
-    y = drawTextBlock(ctx, cross, 40, y, w - 80);
-    y += 20;
-    
-    // Actions
-    y = drawSectionHeader(ctx, '干预建议', w / 2, y);
-    y += 16;
-    actions.forEach((action, i) => {
-        y = drawActionItem(ctx, i + 1, action.title, action.desc, 40, y, w - 80);
-    });
-    
-    y += 30;
-    
-    // Footer
-    ctx.fillStyle = 'rgba(240,240,245,0.2)';
-    ctx.font = '10px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('由 易因 · 世界分析引擎 生成', w / 2, y);
-    
-    // Trim canvas to actual content height
-    const finalCanvas = document.createElement('canvas');
-    finalCanvas.width = canvas.width;
-    finalCanvas.height = Math.min(y + 40, 16000) * scale; // Cap at reasonable height
-    const fctx = finalCanvas.getContext('2d');
-    fctx.drawImage(canvas, 0, 0);
-    
-    finalCanvas.toBlob(function(blob) {
-        if (!blob) { showToast('图片生成失败', 'error'); return; }
-        const dl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = dl;
-        a.download = `yiyin-analysis-${Date.now()}.png`;
-        a.click();
-        URL.revokeObjectURL(dl);
-        showToast('图片已导出', 'success');
-    });
-}
-
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-    const words = text.split('');
-    let line = '';
-    let cy = y;
-    for (let n = 0; n < words.length; n++) {
-        const testLine = line + words[n];
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && n > 0) {
-            ctx.fillText(line, x, cy);
-            line = words[n];
-            cy += lineHeight;
-        } else {
-            line = testLine;
-        }
-    }
-    ctx.fillText(line, x, cy);
-    return cy;
-}
-
-function measureTextHeight(ctx, text, maxWidth, lineHeight) {
-    const words = text.split('');
-    let line = '';
-    let lines = 1;
-    for (let n = 0; n < words.length; n++) {
-        const testLine = line + words[n];
-        const metrics = ctx.measureText(testLine);
-        if (metrics.width > maxWidth && n > 0) {
-            line = words[n];
-            lines++;
-        } else {
-            line = testLine;
-        }
-    }
-    return lines * lineHeight;
-}
-
-function drawSectionHeader(ctx, title, cx, y) {
-    ctx.fillStyle = '#c9a96e';
-    ctx.font = 'bold 15px "Noto Serif SC", serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(title, cx, y);
-    
-    ctx.strokeStyle = 'rgba(201,169,110,0.15)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(40, y + 6);
-    ctx.lineTo(cx - ctx.measureText(title).width / 2 - 10, y + 6);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(cx + ctx.measureText(title).width / 2 + 10, y + 6);
-    ctx.lineTo(ctx.canvas.width / (window.devicePixelRatio || 2) - 40, y + 6);
-    ctx.stroke();
-    
-    return y + 20;
-}
-
-function drawContentBlock(ctx, title, content, x, y, maxWidth, color) {
-    ctx.fillStyle = 'rgba(240,240,245,0.4)';
-    ctx.font = 'bold 11px Inter, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(title, x, y);
-    y += 16;
-    
-    ctx.fillStyle = color || 'rgba(240,240,245,0.75)';
-    ctx.font = '12px Inter, sans-serif';
-    const lines = content.split('\n');
-    lines.forEach(line => {
-        y = wrapText(ctx, line, x, y, maxWidth, 18) + 4;
-    });
-    return y + 10;
-}
-
-function drawTextBlock(ctx, text, x, y, maxWidth) {
-    ctx.fillStyle = 'rgba(240,240,245,0.75)';
-    ctx.font = '12px Inter, sans-serif';
-    ctx.textAlign = 'left';
-    y = wrapText(ctx, text, x, y, maxWidth, 18);
-    return y + 10;
-}
-
-function drawActionItem(ctx, num, title, desc, x, y, maxWidth) {
-    // Number circle
-    ctx.beginPath();
-    ctx.arc(x + 12, y - 4, 10, 0, Math.PI * 2);
-    ctx.fillStyle = '#c9a96e';
-    ctx.fill();
-    ctx.fillStyle = '#030305';
-    ctx.font = 'bold 10px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(num.toString(), x + 12, y);
-    
-    // Title
-    ctx.fillStyle = '#c9a96e';
-    ctx.font = 'bold 12px Inter, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(title, x + 30, y - 2);
-    
-    // Description
-    ctx.fillStyle = 'rgba(240,240,245,0.6)';
-    ctx.font = '11px Inter, sans-serif';
-    y = wrapText(ctx, desc, x + 30, y + 14, maxWidth - 30, 16) + 8;
-    
-    return y + 4;
-}
-
 function shareResult() {
     if (!state.currentResult) {
         showToast('请先进行分析');
@@ -2112,12 +1274,11 @@ function openSettings() {
     document.getElementById('settingAutoSave').checked = state.settings.autoSave;
     document.getElementById('settingAnimations').checked = state.settings.animations;
     document.getElementById('settingCompactMode').checked = state.settings.compactMode;
-    document.getElementById('settingLlmMode').checked = state.settings.llmMode;
-    
-    // Sync LLM config
+
+    // Sync LLM config (always visible)
     const llmSection = document.getElementById('llmConfigSection');
     if (llmSection) {
-        llmSection.style.display = state.settings.llmMode ? 'block' : 'none';
+        llmSection.style.display = 'block';
     }
     const providerSelect = document.getElementById('llmProviderSelect');
     if (providerSelect) providerSelect.value = state.settings.llmProvider || 'kimi';
@@ -2298,29 +1459,7 @@ function toggleSetting(key, value) {
     saveSettings();
     applySettings();
     
-    // Handle LLM config section visibility
-    if (key === 'llmMode') {
-        const llmSection = document.getElementById('llmConfigSection');
-        if (llmSection) {
-            llmSection.style.display = value ? 'block' : 'none';
-        }
-    }
-    
     showToast('设置已保存');
-}
-
-async function exportAllData() {
-    const history = await dbGetAll('history');
-    const settings = await dbGetAll('settings');
-    const data = { history, settings, exportedAt: new Date().toISOString(), version: '4.5.9' };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `yiyin-backup-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('数据备份已导出');
 }
 
 async function clearAllData() {
@@ -2328,11 +1467,8 @@ async function clearAllData() {
     await dbClear('history');
     await dbClear('settings');
     state.history = [];
-    state.compareList = [];
-    localStorage.removeItem('yiyin_compare');
     updateHistoryUI();
     updateFavoritesUI();
-    updateCompareBadge();
     showToast('所有数据已清除');
     closeSettings();
 }
@@ -2460,112 +1596,6 @@ function handleShareUrl() {
 // ════════════════════════════════════════
 // IMAGE EXPORT (DOM to Image)
 // ════════════════════════════════════════
-function openExportImage() {
-    exportResult('image');
-}
-
-function closeExportImage() {
-    document.getElementById('exportOverlay')?.classList.remove('active');
-}
-
-async function downloadImage() {
-    const preview = document.getElementById('exportPreview');
-    const card = preview.querySelector('.export-preview-card');
-    if (!card) return;
-
-    try {
-        const canvas = await htmlToCanvas(card);
-        const link = document.createElement('a');
-        link.download = `yiyin-${Date.now()}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        showToast('图片已导出');
-        closeExportImage();
-    } catch (err) {
-        showToast('导出失败，请重试', 'error');
-    }
-}
-
-async function htmlToCanvas(element) {
-    const rect = element.getBoundingClientRect();
-    const scale = 2;
-    const canvas = document.createElement('canvas');
-    canvas.width = rect.width * scale;
-    canvas.height = rect.height * scale;
-    const ctx = canvas.getContext('2d');
-    ctx.scale(scale, scale);
-
-    // Fill background
-    const styles = getComputedStyle(element);
-    const bg = styles.backgroundColor || '#030305';
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, rect.width, rect.height);
-
-    // Draw text content recursively
-    await drawElementToCanvas(ctx, element, 0, 0, scale);
-
-    return canvas;
-}
-
-async function drawElementToCanvas(ctx, element, offsetX, offsetY, scale) {
-    const style = getComputedStyle(element);
-    const rect = element.getBoundingClientRect();
-    const x = rect.left - offsetX;
-    const y = rect.top - offsetY;
-
-    // Skip hidden elements
-    if (style.display === 'none' || style.visibility === 'hidden') return;
-
-    // Draw background if it has one
-    if (style.backgroundColor && style.backgroundColor !== 'rgba(0, 0, 0, 0)' && style.backgroundColor !== 'transparent') {
-        ctx.fillStyle = style.backgroundColor;
-        const r = parseFloat(style.borderRadius) || 0;
-        roundRect(ctx, x, y, rect.width, rect.height, r);
-        ctx.fill();
-    }
-
-    // Draw border
-    if (parseFloat(style.borderWidth) > 0) {
-        ctx.strokeStyle = style.borderColor;
-        ctx.lineWidth = parseFloat(style.borderWidth);
-        const r = parseFloat(style.borderRadius) || 0;
-        roundRect(ctx, x, y, rect.width, rect.height, r);
-        ctx.stroke();
-    }
-
-    // Draw text for leaf nodes
-    if (element.children.length === 0 && element.textContent.trim()) {
-        ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-        ctx.fillStyle = style.color;
-        ctx.textAlign = style.textAlign || 'left';
-        ctx.textBaseline = 'middle';
-        const lines = element.textContent.split('\n');
-        const lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.4;
-        lines.forEach((line, i) => {
-            ctx.fillText(line.trim(), x + parseFloat(style.paddingLeft) || x + 4, y + (parseFloat(style.paddingTop) || 4) + (i + 0.5) * lineHeight);
-        });
-    }
-
-    // Recurse children
-    for (const child of element.children) {
-        await drawElementToCanvas(ctx, child, offsetX, offsetY, scale);
-    }
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-}
-
 function showToast(msg, type = 'info') {
     if (window.YIYIN_ANIMATIONS) {
         window.YIYIN_ANIMATIONS.enqueueToast(msg, type);
@@ -3558,7 +2588,6 @@ loadHistoryFromDB().then(() => {
     updateHistoryUI();
     updateFavoritesUI();
 });
-updateCompareBadge();
 updateCharCount();
 renderTags();
 
