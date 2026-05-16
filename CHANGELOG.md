@@ -1,5 +1,26 @@
 # 易因 · 世界分析引擎 — 更新日志
 
+## v4.5.11 (2026-05-17) — LLM 流式报告重构与调试面板优化
+
+### 分析流程重构
+- **删除本地分析卡片渲染**：点击「开始分析」后不再显示易经卦象、十二因缘等结构化卡片，只保留 LLM 生成的流式分析报告
+- **纯文本报告输出**：`renderAiResultShell()` 移除卡片外壳、AI 图标、状态标签和「分析对象」区块，仅输出干净的 `#llmContent` 流式文本区
+- **清理冗余状态逻辑**：`streamLlmToResults()` 移除对已删除卡片元素的 `phaseTag` 引用
+
+### Bug 修复
+- **修复分析结果完全不可见**：删除 `styles.css` 中 `.result-card { opacity: 0 }` 残留死代码，该代码导致卡片在 `fadeInScale` 动画结束后回退到透明状态
+- **修复 `analyze()` 漏调 `renderResult()`**：此前仅执行本地分析计算却未调用渲染函数，导致本地卡片从未被画到 DOM
+- **修复 Service Worker 缓存旧代码**：`CACHE_NAME` 从 `yiyin-v4-5-13` 更新为 `yiyin-v4-5-14`，避免 stale-while-revalidate 策略返回旧版本
+
+### 本地代理增强
+- **新增 `server.mjs`**：本地代理服务器，支持 Kimi / DeepSeek / OpenRouter 三家提供商的 `/api/llm/chat` 转发
+- **fallback API key 支持**：代理在请求未提供 key 时，自动使用环境变量 `OPENAI_API_KEY` 兜底，localhost 开发无需手动填 key
+- **修复 CORS 预flight**：`OPTIONS` 请求正确返回 `Access-Control-Allow-Headers`
+
+### 调试面板优化
+- **默认隐藏调试面板**：`debugLog()` 不再自动将面板设为 `display: block`，日志静默写入
+- **新增「审查」按钮**：header 右上角增加眼睛图标按钮，点击切换调试面板显示/隐藏
+
 ## v4.5.10 (2026-05-16) — 功能精简：移除冗余功能与简化设置
 
 ### 删除功能

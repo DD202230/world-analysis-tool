@@ -354,10 +354,16 @@ function escapeHtml(text) {
 function debugLog(msg) {
     const panel = document.getElementById('debugPanel');
     if (!panel) return;
-    panel.style.display = 'block';
     const line = document.createElement('div');
     line.textContent = `${new Date().toLocaleTimeString()} ${msg}`;
     panel.appendChild(line);
+}
+
+function toggleDebugPanel() {
+    const panel = document.getElementById('debugPanel');
+    if (!panel) return;
+    const isVisible = panel.style.display === 'block';
+    panel.style.display = isVisible ? 'none' : 'block';
 }
 
 // Safe DOM accessor
@@ -1323,13 +1329,19 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
         return;
     }
 
+    const useLocalProxy = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
     if (!apiKey) {
-        onError('请先输入 API Key');
-        return;
+        if (useLocalProxy) {
+            // Allow localhost proxy to use its own fallback key
+            apiKey = 'local';
+        } else {
+            onError('请先输入 API Key');
+            return;
+        }
     }
 
     try {
-        const useLocalProxy = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         const endpoint = useLocalProxy ? '/api/llm/chat' : config.endpoint;
         console.log('[LLM] endpoint:', endpoint, 'provider:', provider, 'useLocalProxy:', useLocalProxy);
         debugLog('streamLLM start: ' + endpoint + ' provider=' + provider);
@@ -2074,7 +2086,10 @@ function showAnalyzeResult() {
     const results = document.getElementById('results');
     const toolbar = document.getElementById('resultToolbar');
     if (setup) setup.classList.add('hidden');
-    if (results) results.classList.add('active');
+    if (results) {
+        results.classList.add('active');
+        setTimeout(() => results.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
     if (toolbar) toolbar.style.display = 'flex';
 }
 
@@ -2098,43 +2113,31 @@ function streamLlmToResults(scenario, dim, type) {
     const streamingEl = document.getElementById('llmContent') || document.getElementById('resultStreaming');
     if (!streamingEl) return;
 
-    streamingEl.innerHTML = '<div class="streaming-placeholder">正在连接 AI 分析师...</div>';
-
     const prompt = buildUserPrompt(scenario, dim, type);
     let fullText = '';
     let isFirstChunk = true;
 
-    console.log('[streamLlmToResults] starting, streamingEl:', streamingEl?.id);
     debugLog('streamLlmToResults start, streamingEl=' + (streamingEl?.id || 'null'));
     streamLLM(prompt,
         (chunk) => {
-            console.log('[streamLlmToResults] onChunk:', chunk.substring(0, 50));
             debugLog('onChunk: ' + chunk.substring(0, 50));
             if (isFirstChunk) {
                 streamingEl.innerHTML = '';
                 isFirstChunk = false;
-                const phaseTag = document.querySelector('#llmResultCard .tag-phase');
-                if (phaseTag) phaseTag.textContent = '生成中';
             }
             fullText += chunk;
             streamingEl.innerHTML = markdownToHtml(fullText);
             streamingEl.scrollTop = streamingEl.scrollHeight;
         },
         () => {
-            console.log('[streamLlmToResults] onDone');
             debugLog('onDone');
             if (!state.currentResult) state.currentResult = {};
             state.currentResult.llmAnalysis = fullText;
             state.currentResult.scenario = scenario;
-            const phaseTag = document.querySelector('#llmResultCard .tag-phase');
-            if (phaseTag) phaseTag.textContent = '已完成';
             showToast('深度分析完成', 'success');
         },
         (error) => {
-            console.log('[streamLlmToResults] onError:', error);
             debugLog('onError: ' + String(error).substring(0, 100));
-            const phaseTag = document.querySelector('#llmResultCard .tag-phase');
-            if (phaseTag) phaseTag.textContent = '失败';
             streamingEl.innerHTML = `<div style="color:var(--danger);padding:16px">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px">
                     <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -2541,32 +2544,14 @@ function renderAiResultShell(scenario) {
     const resultsEl = document.getElementById('results');
     const streamingEl = document.getElementById('resultStreaming');
     const toolbar = document.getElementById('resultToolbar');
-    console.log('[renderAiResultShell] resultsEl:', !!resultsEl, 'streamingEl:', !!streamingEl, 'toolbar:', !!toolbar);
     if (!resultsEl || !streamingEl) return;
 
     resultsEl.classList.add('active');
     if (toolbar) toolbar.style.display = 'flex';
 
     streamingEl.innerHTML = `
-        <div class="result-card llm-card" id="llmResultCard">
-            <div class="result-header">
-                <div class="gua-symbol">AI</div>
-                <div class="gua-info">
-                    <h3>AI 深度分析</h3>
-                    <div class="result-meta">
-                        <span class="tag tag-phase">准备中</span>
-                    </div>
-                </div>
-            </div>
-            <div class="result-body">
-                <div class="content-block" style="margin-bottom:16px">
-                    <h4>分析对象</h4>
-                    <p>${escapeHtml(scenario || '')}</p>
-                </div>
-                <div class="llm-streaming-content" id="llmContent">
-                    <div class="streaming-placeholder">正在准备分析...</div>
-                </div>
-            </div>
+        <div class="llm-streaming-content" id="llmContent">
+            <div class="streaming-placeholder">正在准备分析...</div>
         </div>
     `;
 }
@@ -2609,6 +2594,7 @@ function renderResult(result, withLlmPlaceholder = false) {
 
     resultsEl.classList.add('active');
     if (toolbar) toolbar.style.display = 'flex';
+    debugLog('renderResult start, withLlmPlaceholder=' + withLlmPlaceholder + ', result keys=' + Object.keys(result || {}).join(','));
 
     const llmCard = withLlmPlaceholder ? `
         <div class="result-card llm-card" id="llmResultCard">
@@ -2686,6 +2672,7 @@ function renderResult(result, withLlmPlaceholder = false) {
         ${llmCard}
     `;
     restoreResultCardStates();
+    debugLog('renderResult done, children=' + (streamingEl?.children?.length || 0) + ', htmlLen=' + (streamingEl?.innerHTML?.length || 0));
 }
 function renderLlmAnalysis(result) {
     try {

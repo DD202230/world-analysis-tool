@@ -2627,20 +2627,6 @@ body.reduced-motion .yao-line {
 }
 
 /* ════════════════════════════════════════
-   RESULT CARD ENHANCED ENTRANCE
-   ════════════════════════════════════════ */
-.result-card {
-    opacity: 0;
-    transform: translateY(20px);
-}
-
-.result-card.visible {
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity 350ms cubic-bezier(0.16, 1, 0.3, 1), transform 350ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* ════════════════════════════════════════
    SKELETON LOADING
    ════════════════════════════════════════ */
 .skeleton-card {

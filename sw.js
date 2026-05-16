@@ -1,4 +1,4 @@
-const CACHE_NAME = 'yiyin-v4-3-5';
+const CACHE_NAME = 'yiyin-v4-5-14';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
