@@ -691,7 +691,7 @@ function switchView(view) {
 
     const views = ['analyze', 'history', 'favorites', 'gua', 'pratitya', 'phenomenology', 'praxis', 'contradiction', 'stoic'];
     const currentEl = document.getElementById(previousView + 'View');
-
+    
     views.forEach(v => {
         const el = document.getElementById(v + 'View');
         if (el) {
@@ -1032,7 +1032,7 @@ function renderHistoryView() {
                             </div>
                             <div class="history-card-meta">
                                 <div class="history-card-tags">
-                                        ${(h.tags || []).map(t => `<span class="tag tag-info">${t}</span>`).join('')}
+                                    ${(h.tags || []).map(t => `<span class="tag tag-info">${t}</span>`).join('')}
                                 </div>
                                 <span class="history-card-date">${formatRelativeTime(h.timestamp)}</span>
                             </div>
@@ -1100,7 +1100,6 @@ function renderFavoritesView() {
     `).join('');
 }
 
-// ════════════════════════════════════════
 // ════════════════════════════════════════
 // GUA VIEW
 // ════════════════════════════════════════
@@ -1219,9 +1218,6 @@ function renderPratityaView() {
     `).join('');
 }
 
-// ════════════════════════════════════════
-// EXPORT & SHARE
-// ════════════════════════════════════════
 function shareResult() {
     if (!state.currentResult) {
         showToast('请先进行分析');
@@ -1275,11 +1271,7 @@ function openSettings() {
     document.getElementById('settingAnimations').checked = state.settings.animations;
     document.getElementById('settingCompactMode').checked = state.settings.compactMode;
 
-    // Sync LLM config (always visible)
-    const llmSection = document.getElementById('llmConfigSection');
-    if (llmSection) {
-        llmSection.style.display = 'block';
-    }
+    // Sync LLM config
     const providerSelect = document.getElementById('llmProviderSelect');
     if (providerSelect) providerSelect.value = state.settings.llmProvider || 'kimi';
     const apiKeyInput = document.getElementById('llmApiKeyInput');
@@ -1593,8 +1585,6 @@ function handleShareUrl() {
     }
 }
 
-// ════════════════════════════════════════
-// IMAGE EXPORT (DOM to Image)
 // ════════════════════════════════════════
 function showToast(msg, type = 'info') {
     if (window.YIYIN_ANIMATIONS) {
