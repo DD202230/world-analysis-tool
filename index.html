@@ -21,6 +21,9 @@
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
+    <!-- Debug Panel -->
+    <div id="debugPanel" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99999;background:rgba(10,10,15,0.95);border-top:1px solid var(--border-default);padding:12px 16px;font-size:11px;font-family:monospace;color:#c9a96e;max-height:200px;overflow-y:auto;"></div>
+
     <!-- Command Palette -->
     <div class="cmd-overlay" id="cmdOverlay" onclick="closeCmdPalette()">
         <div class="cmd-panel" onclick="event.stopPropagation()">
@@ -482,7 +485,7 @@
     <script src="data/phenomenologyData.js" defer></script>
     <script src="data/stoicData.js" defer></script>
     <script src="animations.js" defer></script>
-    <script src="app.js" defer></script>
+    <script src="app.js?v=4.5.13" defer></script>
 
     <!-- Analysis Modal -->
     <div class="modal-overlay" id="analysisModal" onclick="if(event.target===this) closeAnalysisModal()">

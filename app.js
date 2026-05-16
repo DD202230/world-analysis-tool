@@ -351,6 +351,15 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function debugLog(msg) {
+    const panel = document.getElementById('debugPanel');
+    if (!panel) return;
+    panel.style.display = 'block';
+    const line = document.createElement('div');
+    line.textContent = `${new Date().toLocaleTimeString()} ${msg}`;
+    panel.appendChild(line);
+}
+
 // Safe DOM accessor
 function $(id) { return document.getElementById(id); }
 function safeSetHtml(id, html) {
@@ -1323,6 +1332,7 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
         const useLocalProxy = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         const endpoint = useLocalProxy ? '/api/llm/chat' : config.endpoint;
         console.log('[LLM] endpoint:', endpoint, 'provider:', provider, 'useLocalProxy:', useLocalProxy);
+        debugLog('streamLLM start: ' + endpoint + ' provider=' + provider);
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`
@@ -1347,10 +1357,12 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
             })
         });
         console.log('[LLM] response status:', response.status, 'ok:', response.ok);
+        debugLog('response status=' + response.status + ' ok=' + response.ok);
 
         if (!response.ok) {
             const errText = await response.text().catch(() => 'Unknown error');
             console.error('[LLM] response error text:', errText);
+            debugLog('response error: ' + response.status + ' ' + errText.substring(0, 100));
             if (useLocalProxy && response.status === 404) {
                 onError('本地 AI 代理没有启动。请用 node server.mjs 打开项目，而不是普通静态服务器。');
                 return;
@@ -1377,8 +1389,10 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
                 if (line.startsWith('data: ')) {
                     const data = line.slice(6).trim();
                     console.log('[LLM] SSE data:', data.substring(0, 200));
+                    debugLog('SSE data: ' + data.substring(0, 100));
                     if (data === '[DONE]') {
                         console.log('[LLM] [DONE] received, hasReceivedChunk:', hasReceivedChunk);
+                        debugLog('[DONE] received, hasReceivedChunk=' + hasReceivedChunk);
                         if (hasReceivedChunk) {
                             onDone();
                         } else {
@@ -1403,6 +1417,7 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
         }
 
         console.log('[LLM] stream ended, hasReceivedChunk:', hasReceivedChunk);
+        debugLog('stream ended, hasReceivedChunk=' + hasReceivedChunk);
         if (hasReceivedChunk) {
             onDone();
         } else {
@@ -1411,8 +1426,10 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
         currentLlmAbortController = null;
     } catch (err) {
         currentLlmAbortController = null;
+        debugLog('catch error: ' + err.name + ' ' + (err.message || '').substring(0, 100));
         if (err.name === 'AbortError') {
             // User cancelled or new request started — silent return
+            debugLog('AbortError - silent');
             return;
         }
         if (err.message?.includes('Load failed') || err.message?.includes('Failed to fetch')) {
@@ -2088,9 +2105,11 @@ function streamLlmToResults(scenario, dim, type) {
     let isFirstChunk = true;
 
     console.log('[streamLlmToResults] starting, streamingEl:', streamingEl?.id);
+    debugLog('streamLlmToResults start, streamingEl=' + (streamingEl?.id || 'null'));
     streamLLM(prompt,
         (chunk) => {
             console.log('[streamLlmToResults] onChunk:', chunk.substring(0, 50));
+            debugLog('onChunk: ' + chunk.substring(0, 50));
             if (isFirstChunk) {
                 streamingEl.innerHTML = '';
                 isFirstChunk = false;
@@ -2103,6 +2122,7 @@ function streamLlmToResults(scenario, dim, type) {
         },
         () => {
             console.log('[streamLlmToResults] onDone');
+            debugLog('onDone');
             if (!state.currentResult) state.currentResult = {};
             state.currentResult.llmAnalysis = fullText;
             state.currentResult.scenario = scenario;
@@ -2112,6 +2132,7 @@ function streamLlmToResults(scenario, dim, type) {
         },
         (error) => {
             console.log('[streamLlmToResults] onError:', error);
+            debugLog('onError: ' + String(error).substring(0, 100));
             const phaseTag = document.querySelector('#llmResultCard .tag-phase');
             if (phaseTag) phaseTag.textContent = '失败';
             streamingEl.innerHTML = `<div style="color:var(--danger);padding:16px">
