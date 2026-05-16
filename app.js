@@ -2520,6 +2520,7 @@ function renderAiResultShell(scenario) {
     const resultsEl = document.getElementById('results');
     const streamingEl = document.getElementById('resultStreaming');
     const toolbar = document.getElementById('resultToolbar');
+    console.log('[renderAiResultShell] resultsEl:', !!resultsEl, 'streamingEl:', !!streamingEl, 'toolbar:', !!toolbar);
     if (!resultsEl || !streamingEl) return;
 
     resultsEl.classList.add('active');
