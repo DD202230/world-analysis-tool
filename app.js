@@ -1322,6 +1322,7 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
     try {
         const useLocalProxy = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
         const endpoint = useLocalProxy ? '/api/llm/chat' : config.endpoint;
+        console.log('[LLM] endpoint:', endpoint, 'provider:', provider, 'useLocalProxy:', useLocalProxy);
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`
@@ -1345,9 +1346,11 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
                 max_tokens: 4000
             })
         });
+        console.log('[LLM] response status:', response.status, 'ok:', response.ok);
 
         if (!response.ok) {
             const errText = await response.text().catch(() => 'Unknown error');
+            console.error('[LLM] response error text:', errText);
             if (useLocalProxy && response.status === 404) {
                 onError('本地 AI 代理没有启动。请用 node server.mjs 打开项目，而不是普通静态服务器。');
                 return;
@@ -1373,7 +1376,9 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
                 if (line.trim() === '') continue;
                 if (line.startsWith('data: ')) {
                     const data = line.slice(6).trim();
+                    console.log('[LLM] SSE data:', data.substring(0, 200));
                     if (data === '[DONE]') {
+                        console.log('[LLM] [DONE] received, hasReceivedChunk:', hasReceivedChunk);
                         if (hasReceivedChunk) {
                             onDone();
                         } else {
@@ -1385,17 +1390,19 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
                     try {
                         const parsed = JSON.parse(data);
                         const chunk = parsed.choices?.[0]?.delta?.content || '';
+                        console.log('[LLM] chunk:', chunk);
                         if (chunk) {
                             hasReceivedChunk = true;
                             onChunk(chunk);
                         }
                     } catch (e) {
-                        // ignore parse errors
+                        console.error('[LLM] parse error:', e, 'data:', data.substring(0, 200));
                     }
                 }
             }
         }
 
+        console.log('[LLM] stream ended, hasReceivedChunk:', hasReceivedChunk);
         if (hasReceivedChunk) {
             onDone();
         } else {
@@ -2080,8 +2087,10 @@ function streamLlmToResults(scenario, dim, type) {
     let fullText = '';
     let isFirstChunk = true;
 
+    console.log('[streamLlmToResults] starting, streamingEl:', streamingEl?.id);
     streamLLM(prompt,
         (chunk) => {
+            console.log('[streamLlmToResults] onChunk:', chunk.substring(0, 50));
             if (isFirstChunk) {
                 streamingEl.innerHTML = '';
                 isFirstChunk = false;
@@ -2093,6 +2102,7 @@ function streamLlmToResults(scenario, dim, type) {
             streamingEl.scrollTop = streamingEl.scrollHeight;
         },
         () => {
+            console.log('[streamLlmToResults] onDone');
             if (!state.currentResult) state.currentResult = {};
             state.currentResult.llmAnalysis = fullText;
             state.currentResult.scenario = scenario;
@@ -2101,6 +2111,7 @@ function streamLlmToResults(scenario, dim, type) {
             showToast('深度分析完成', 'success');
         },
         (error) => {
+            console.log('[streamLlmToResults] onError:', error);
             const phaseTag = document.querySelector('#llmResultCard .tag-phase');
             if (phaseTag) phaseTag.textContent = '失败';
             streamingEl.innerHTML = `<div style="color:var(--danger);padding:16px">
