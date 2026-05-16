@@ -1320,14 +1320,18 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
     }
 
     try {
+        const useLocalProxy = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const endpoint = useLocalProxy ? '/api/llm/chat' : config.endpoint;
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`
         };
-        if (config.headers) {
+        if (useLocalProxy) {
+            headers['X-LLM-Provider'] = provider;
+        } else if (config.headers) {
             Object.assign(headers, config.headers);
         }
-        const response = await fetch(config.endpoint, {
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers,
             signal: abortController.signal,
@@ -1344,6 +1348,10 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
 
         if (!response.ok) {
             const errText = await response.text().catch(() => 'Unknown error');
+            if (useLocalProxy && response.status === 404) {
+                onError('本地 AI 代理没有启动。请用 node server.mjs 打开项目，而不是普通静态服务器。');
+                return;
+            }
             onError(`API 错误 (${response.status}): ${errText}`);
             return;
         }
@@ -1351,6 +1359,7 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let buffer = '';
+        let hasReceivedChunk = false;
 
         while (true) {
             const { done, value } = await reader.read();
@@ -1363,16 +1372,23 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
             for (const line of lines) {
                 if (line.trim() === '') continue;
                 if (line.startsWith('data: ')) {
-                    const data = line.slice(6);
+                    const data = line.slice(6).trim();
                     if (data === '[DONE]') {
-                        onDone();
+                        if (hasReceivedChunk) {
+                            onDone();
+                        } else {
+                            onError('AI 返回了空响应，请检查 API Key 是否有效，或尝试切换模型提供商');
+                        }
                         currentLlmAbortController = null;
                         return;
                     }
                     try {
                         const parsed = JSON.parse(data);
                         const chunk = parsed.choices?.[0]?.delta?.content || '';
-                        if (chunk) onChunk(chunk);
+                        if (chunk) {
+                            hasReceivedChunk = true;
+                            onChunk(chunk);
+                        }
                     } catch (e) {
                         // ignore parse errors
                     }
@@ -1380,7 +1396,11 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
             }
         }
 
-        onDone();
+        if (hasReceivedChunk) {
+            onDone();
+        } else {
+            onError('AI 返回了空响应，请检查 API Key 是否有效，或尝试切换模型提供商');
+        }
         currentLlmAbortController = null;
     } catch (err) {
         currentLlmAbortController = null;
@@ -1389,7 +1409,7 @@ async function streamLLM(prompt, onChunk, onDone, onError) {
             return;
         }
         if (err.message?.includes('Load failed') || err.message?.includes('Failed to fetch')) {
-            onError(`网络连接失败。${config.cors === false ? 'Kimi/DeepSeek 官方 API 不支持浏览器直接调用，请切换到 OpenRouter 或使用后端代理。' : '请检查网络连接和 API Key。'}`);
+            onError('网络连接失败。请确认本地 AI 代理已启动、网络可用，并检查 API Key。');
         } else {
             onError(err.message || '网络请求失败');
         }
@@ -1406,14 +1426,18 @@ async function testLlmConnection() {
     showToast('正在测试连接...');
     try {
         const config = LLM_CONFIG.providers[provider];
+        const useLocalProxy = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        const endpoint = useLocalProxy ? '/api/llm/chat' : config.endpoint;
         const headers = {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${apiKey}`
         };
-        if (config.headers) {
+        if (useLocalProxy) {
+            headers['X-LLM-Provider'] = provider;
+        } else if (config.headers) {
             Object.assign(headers, config.headers);
         }
-        const response = await fetch(config.endpoint, {
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers,
             body: JSON.stringify({
@@ -1430,12 +1454,7 @@ async function testLlmConnection() {
         }
     } catch (err) {
         if (err.message?.includes('Load failed') || err.message?.includes('Failed to fetch')) {
-            const config = LLM_CONFIG.providers[provider];
-            if (config.cors === false) {
-                showToast('连接失败: CORS 限制。Kimi/DeepSeek 官方 API 不支持浏览器直接调用，请切换到 OpenRouter', 'error');
-            } else {
-                showToast('连接失败: 网络错误，请检查连接和 API Key', 'error');
-            }
+            showToast('连接失败: 请确认本地 AI 代理已启动，并检查网络和 API Key', 'error');
         } else {
             showToast(`连接失败: ${err.message}`, 'error');
         }
@@ -1998,12 +2017,32 @@ function analyze() {
         return;
     }
 
-    // Hide setup, show results area, start LLM streaming
-    showAnalyzeResult();
-    streamLlmToResults(scenario, state.selectedDim, state.selectedType);
+    state.currentResult = {
+        ...(state.currentResult || {}),
+        scenario,
+        timestamp: Date.now(),
+        llmAnalysis: ''
+    };
 
-    // Run local analysis in background for saving
-    setTimeout(() => runLocalAnalysis(scenario), 50);
+    runLocalAnalysis(scenario);
+    const hasLlmKey = !!(state.settings.llmApiKey || '').trim();
+    const provider = state.settings.llmProvider || 'kimi';
+    const config = LLM_CONFIG.providers[provider];
+
+    showAnalyzeResult();
+    renderAiResultShell(scenario);
+
+    if (!hasLlmKey) {
+        renderAnalysisNotice('请先在设置中输入 API Key。浏览器直连推荐使用 OpenRouter。', 'warning');
+        return;
+    }
+
+    if (!config) {
+        renderAnalysisNotice('当前模型提供商不可用，请在设置中重新选择。', 'error');
+        return;
+    }
+
+    streamLlmToResults(scenario, state.selectedDim, state.selectedType);
 }
 
 function showAnalyzeResult() {
@@ -2032,7 +2071,7 @@ function showAnalyzeSetup() {
 }
 
 function streamLlmToResults(scenario, dim, type) {
-    const streamingEl = document.getElementById('resultStreaming');
+    const streamingEl = document.getElementById('llmContent') || document.getElementById('resultStreaming');
     if (!streamingEl) return;
 
     streamingEl.innerHTML = '<div class="streaming-placeholder">正在连接 AI 分析师...</div>';
@@ -2046,6 +2085,8 @@ function streamLlmToResults(scenario, dim, type) {
             if (isFirstChunk) {
                 streamingEl.innerHTML = '';
                 isFirstChunk = false;
+                const phaseTag = document.querySelector('#llmResultCard .tag-phase');
+                if (phaseTag) phaseTag.textContent = '生成中';
             }
             fullText += chunk;
             streamingEl.innerHTML = markdownToHtml(fullText);
@@ -2055,9 +2096,13 @@ function streamLlmToResults(scenario, dim, type) {
             if (!state.currentResult) state.currentResult = {};
             state.currentResult.llmAnalysis = fullText;
             state.currentResult.scenario = scenario;
+            const phaseTag = document.querySelector('#llmResultCard .tag-phase');
+            if (phaseTag) phaseTag.textContent = '已完成';
             showToast('深度分析完成', 'success');
         },
         (error) => {
+            const phaseTag = document.querySelector('#llmResultCard .tag-phase');
+            if (phaseTag) phaseTag.textContent = '失败';
             streamingEl.innerHTML = `<div style="color:var(--danger);padding:16px">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px">
                     <circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line>
@@ -2101,8 +2146,10 @@ function runLocalAnalysis(scenario) {
             state.currentResult = result;
         }
         saveToHistory(state.currentResult);
+        return state.currentResult;
     } catch (err) {
         console.error('本地分析失败:', err);
+        return null;
     }
 }
 
@@ -2278,6 +2325,19 @@ function showSavedAnalysisModal(result) {
 function retryAnalysis() {
     const scenario = document.getElementById('scenario').value.trim();
     if (!scenario) return;
+    const provider = state.settings.llmProvider || 'kimi';
+    const config = LLM_CONFIG.providers[provider];
+    if (!state.settings.llmApiKey) {
+        renderAnalysisNotice('请先在设置中输入 API Key。浏览器直连推荐使用 OpenRouter。', 'warning');
+        return;
+    }
+    if (!config) {
+        renderAnalysisNotice('当前模型提供商不可用，请在设置中重新选择。', 'error');
+        return;
+    }
+    if (!document.getElementById('llmContent')) {
+        renderAiResultShell(scenario);
+    }
     streamLlmToResults(scenario, state.selectedDim, state.selectedType);
 }
 
@@ -2445,13 +2505,154 @@ ${cross}`;
     navigator.clipboard.writeText(text).then(() => showToast('已复制到剪贴板', 'success'));
 }
 
-function renderResult(result, withLlmPlaceholder = false) {
-    // 本地结构化卡片已移除，分析结果仅通过弹窗展示
+function renderAiResultShell(scenario) {
     const resultsEl = document.getElementById('results');
-    if (resultsEl) {
-        resultsEl.innerHTML = '';
-        resultsEl.classList.remove('active');
-    }
+    const streamingEl = document.getElementById('resultStreaming');
+    const toolbar = document.getElementById('resultToolbar');
+    if (!resultsEl || !streamingEl) return;
+
+    resultsEl.classList.add('active');
+    if (toolbar) toolbar.style.display = 'flex';
+
+    streamingEl.innerHTML = `
+        <div class="result-card llm-card" id="llmResultCard">
+            <div class="result-header">
+                <div class="gua-symbol">AI</div>
+                <div class="gua-info">
+                    <h3>AI 深度分析</h3>
+                    <div class="result-meta">
+                        <span class="tag tag-phase">准备中</span>
+                    </div>
+                </div>
+            </div>
+            <div class="result-body">
+                <div class="content-block" style="margin-bottom:16px">
+                    <h4>分析对象</h4>
+                    <p>${escapeHtml(scenario || '')}</p>
+                </div>
+                <div class="llm-streaming-content" id="llmContent">
+                    <div class="streaming-placeholder">正在准备分析...</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderAnalysisNotice(message, level = 'warning') {
+    const llmContent = document.getElementById('llmContent') || document.getElementById('resultStreaming');
+    if (!llmContent) return;
+    const color = level === 'error' ? 'var(--danger)' : 'var(--warning)';
+    llmContent.innerHTML = `
+        <div style="color:${color};padding:16px;border:1px solid var(--border-default);border-radius:12px;background:var(--bg-tertiary)">
+            ${escapeHtml(message)}
+        </div>
+    `;
+}
+
+function renderActionList(actions = []) {
+    return actions.map((action, i) => `
+        <div class="action-item">
+            <div class="action-num">${i + 1}</div>
+            <div class="action-content">
+                <h5>${escapeHtml(action.title)}</h5>
+                <p>${escapeHtml(action.desc)}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderNodeChain(chain = []) {
+    return chain.map((node, i) => `
+        <span class="chain-node ${node.isPrimary ? 'active' : ''}">${escapeHtml(node.data?.name || '')}</span>
+        ${i < chain.length - 1 ? '<span class="chain-arrow">→</span>' : ''}
+    `).join('');
+}
+
+function renderResult(result, withLlmPlaceholder = false) {
+    const resultsEl = document.getElementById('results');
+    const streamingEl = document.getElementById('resultStreaming');
+    const toolbar = document.getElementById('resultToolbar');
+    if (!resultsEl || !streamingEl || !result) return;
+
+    resultsEl.classList.add('active');
+    if (toolbar) toolbar.style.display = 'flex';
+
+    const llmCard = withLlmPlaceholder ? `
+        <div class="result-card llm-card" id="llmResultCard">
+            <div class="result-header">
+                <div class="gua-symbol">AI</div>
+                <div class="gua-info">
+                    <h3>AI 深度解读</h3>
+                    <div class="result-meta"><span class="tag tag-phase">等待生成</span></div>
+                </div>
+            </div>
+            <div class="result-body">
+                <div class="llm-streaming-content" id="llmContent">
+                    <div class="streaming-placeholder">准备连接 AI 分析师...</div>
+                </div>
+            </div>
+        </div>
+    ` : '';
+
+    streamingEl.innerHTML = `
+        <div class="result-card collapsible">
+            <div class="result-header" onclick="toggleResultCard(this)">
+                <div class="gua-symbol">${escapeHtml(result.gua?.symbol || '易')}</div>
+                <div class="gua-info">
+                    <h3>${escapeHtml(result.gua?.fullname || result.scenario || '分析结果')}</h3>
+                    <div class="result-meta">
+                        ${result.gua?.nature ? `<span class="tag tag-yang">${escapeHtml(result.gua.nature)}</span>` : ''}
+                        ${result.gua?.phase ? `<span class="tag tag-phase">${escapeHtml(result.gua.phase)}</span>` : ''}
+                        ${result.changedGua ? `<span class="tag tag-info">变卦：${escapeHtml(result.changedGua.fullname)}</span>` : ''}
+                    </div>
+                </div>
+            </div>
+            <div class="result-body">
+                <div class="content-block">
+                    <h4>卦象释义</h4>
+                    <p>${escapeHtml(result.gua?.meaning || '暂无卦象释义')}</p>
+                </div>
+                <div class="content-block">
+                    <h4>转化方向</h4>
+                    <p>${escapeHtml(result.gua?.transform || '暂无转化方向')}</p>
+                </div>
+            </div>
+        </div>
+        <div class="result-card collapsible">
+            <div class="result-header" onclick="toggleResultCard(this)">
+                <div class="gua-symbol">因</div>
+                <div class="gua-info">
+                    <h3>十二因缘 · ${escapeHtml(result.pratitya?.primary?.name || '未匹配')}</h3>
+                    <div class="result-meta">${result.pratitya?.secondary ? `<span class="tag tag-phase">次要：${escapeHtml(result.pratitya.secondary.name)}</span>` : ''}</div>
+                </div>
+            </div>
+            <div class="result-body">
+                <div class="chain-display">${renderNodeChain(result.pratitya?.chain || [])}</div>
+                <div class="content-block">
+                    <h4>主要卡点</h4>
+                    <p>${escapeHtml(result.pratitya?.primary?.meaning || '')} ${escapeHtml(result.pratitya?.primary?.breakPoint || '')}</p>
+                </div>
+            </div>
+        </div>
+        <div class="result-card cross-analysis collapsible">
+            <div class="result-header" onclick="toggleResultCard(this)">
+                <div class="gua-symbol">交</div>
+                <div class="gua-info"><h3>交叉分析</h3></div>
+            </div>
+            <div class="result-body">
+                <div class="content-block"><p>${escapeHtml(result.cross || '暂无交叉分析')}</p></div>
+            </div>
+        </div>
+        <div class="result-card collapsible">
+            <div class="result-header" onclick="toggleResultCard(this)">
+                <div class="gua-symbol">行</div>
+                <div class="gua-info"><h3>干预建议</h3></div>
+            </div>
+            <div class="result-body action-items">${renderActionList(result.actions || [])}</div>
+        </div>
+        ${llmCard}
+    `;
+    restoreResultCardStates();
 }
 function renderLlmAnalysis(result) {
     try {
@@ -2872,4 +3073,3 @@ function renderStoicView(container) {
     </div>`;
     container.innerHTML = html;
 }
-
